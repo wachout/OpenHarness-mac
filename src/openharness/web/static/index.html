@@ -1,0 +1,1891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>OpenHarness // WEB_INTERFACE</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+/* ─── Variables ──────────────────────────────────────────── */
+:root{
+  --bg:#060810;--bg-surface:#0d1117;--bg-elevated:#131a24;--bg-card:#0f1620;
+  --ink:#c9d1d9;--ink-dim:#586069;--ink-bright:#e6edf3;
+  --accent:#00d4aa;--accent-glow:rgba(0,212,170,.18);--accent-dim:#007a63;
+  --cyan:#58a6ff;--cyan-glow:rgba(88,166,255,.15);
+  --violet:#8b5cf6;--orange:#f78166;--yellow:#e3b341;--red:#ff4444;
+  --line:#1c2535;--line-bright:#243040;
+  --mono:"JetBrains Mono","Fira Code","Cascadia Code",ui-monospace,monospace;
+  --radius:4px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{
+  background:var(--bg);color:var(--ink);font-family:var(--mono);
+  font-size:13px;line-height:1.6;-webkit-font-smoothing:antialiased;
+}
+::selection{background:var(--accent-glow);color:#fff;}
+::-webkit-scrollbar{width:3px;height:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--line-bright);border-radius:2px;}
+::-webkit-scrollbar-thumb:hover{background:#334;}
+
+/* ─── Grid background ────────────────────────────────────── */
+body::before{
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(var(--line) 1px,transparent 1px),
+    linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:40px 40px;opacity:.35;
+}
+body::after{
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(0,212,170,.06),transparent);
+}
+
+/* ─── Layout ─────────────────────────────────────────────── */
+#app{position:relative;z-index:1;display:flex;flex-direction:column;height:100vh;}
+
+/* ─── Top navbar ─────────────────────────────────────────── */
+#navbar{
+  display:flex;align-items:center;gap:16px;
+  padding:0 20px;height:48px;
+  background:rgba(13,17,23,.92);
+  border-bottom:1px solid var(--line-bright);
+  backdrop-filter:blur(8px);flex-shrink:0;
+  box-shadow:0 1px 0 var(--accent-dim)30;
+}
+.nav-logo{
+  display:flex;align-items:center;gap:10px;
+  font-size:13px;font-weight:700;letter-spacing:2px;color:var(--ink-bright);
+}
+.nav-logo .bracket{color:var(--accent);}
+.nav-logo .slash{color:var(--accent-dim);}
+.nav-dot{
+  width:7px;height:7px;border-radius:50%;background:var(--accent);
+  box-shadow:0 0 6px var(--accent);animation:pulse 2s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.nav-spacer{flex:1;}
+#nav-model{
+  font-size:10px;letter-spacing:1px;color:var(--accent);
+  background:var(--accent-glow);border:1px solid var(--accent-dim);
+  padding:2px 8px;border-radius:var(--radius);text-transform:uppercase;
+}
+#nav-status{
+  font-size:10px;letter-spacing:1px;color:var(--ink-dim);
+  padding:2px 8px;border:1px solid var(--line-bright);border-radius:var(--radius);
+}
+.nav-tag{
+  font-size:9px;letter-spacing:2px;color:var(--ink-dim);
+  text-transform:uppercase;
+}
+
+/* ─── Main body ──────────────────────────────────────────── */
+#main{display:flex;flex:1;overflow:hidden;}
+
+/* ─── Sidebar ────────────────────────────────────────────── */
+#sidebar{
+  width:240px;flex-shrink:0;
+  display:flex;flex-direction:column;
+  background:rgba(9,13,20,.8);
+  border-right:1px solid var(--line-bright);
+  overflow:hidden;
+}
+.sidebar-header{
+  padding:14px 16px 10px;
+  border-bottom:1px solid var(--line);
+  font-size:9px;letter-spacing:3px;color:var(--accent);
+  text-transform:uppercase;font-weight:700;
+  display:flex;align-items:center;justify-content:space-between;
+}
+#btn-new-session{
+  background:transparent;border:1px solid var(--accent-dim);
+  color:var(--accent);font-family:var(--mono);font-size:10px;
+  padding:3px 8px;border-radius:var(--radius);cursor:pointer;
+  letter-spacing:1px;transition:all .15s;
+}
+#btn-new-session:hover{background:var(--accent-glow);border-color:var(--accent);}
+#session-list{flex:1;overflow-y:auto;padding:8px 0;}
+.session-item{
+  padding:8px 16px;cursor:pointer;transition:background .12s;
+  border-left:2px solid transparent;
+}
+.session-item:hover{background:var(--bg-elevated);}
+.session-item.active{
+  border-left-color:var(--accent);background:var(--accent-glow);
+}
+.session-item .s-name{font-size:12px;color:var(--ink-bright);font-weight:600;}
+.session-item .s-meta{font-size:10px;color:var(--ink-dim);margin-top:2px;}
+.session-item .s-delete{
+  float:right;color:var(--red);opacity:0;font-size:11px;
+  background:none;border:none;cursor:pointer;font-family:var(--mono);
+  transition:opacity .12s;
+}
+.session-item:hover .s-delete{opacity:.6;}
+.session-item:hover .s-delete:hover{opacity:1;}
+.sidebar-footer{
+  padding:12px 16px;border-top:1px solid var(--line);
+  font-size:10px;color:var(--ink-dim);
+}
+#sidebar-stats{line-height:1.8;}
+
+/* ─── Chat area ──────────────────────────────────────────── */
+#chat-area{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+
+/* ─── Session bar ────────────────────────────────────────── */
+#session-bar{
+  padding:10px 20px;
+  border-bottom:1px solid var(--line);
+  background:rgba(13,17,23,.6);
+  display:flex;align-items:center;gap:12px;flex-shrink:0;
+}
+#session-id-display{
+  font-size:10px;letter-spacing:1px;color:var(--cyan);
+  background:var(--cyan-glow);border:1px solid rgba(88,166,255,.25);
+  padding:2px 8px;border-radius:var(--radius);
+}
+#session-cwd{font-size:10px;color:var(--ink-dim);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* ─── Messages ───────────────────────────────────────────── */
+#messages{
+  flex:1;overflow-y:auto;padding:20px;
+  display:flex;flex-direction:column;gap:16px;
+}
+.empty-state{
+  margin:auto;text-align:center;color:var(--ink-dim);
+  padding:60px 20px;
+}
+.empty-state .ascii{
+  font-size:11px;color:var(--line-bright);
+  margin-bottom:24px;letter-spacing:1px;line-height:1.4;
+}
+.empty-state .prompt-hint{
+  font-size:12px;color:var(--accent);letter-spacing:1px;
+}
+
+/* ─── Message bubbles ────────────────────────────────────── */
+.msg{display:flex;gap:12px;max-width:900px;}
+.msg.user{align-self:flex-end;flex-direction:row-reverse;}
+.msg.assistant{align-self:flex-start;}
+.msg-avatar{
+  width:28px;height:28px;border-radius:var(--radius);
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:700;letter-spacing:1px;margin-top:2px;
+}
+.msg.user .msg-avatar{
+  background:linear-gradient(135deg,var(--cyan),#3b82f6);
+  color:#fff;
+}
+.msg.assistant .msg-avatar{
+  background:linear-gradient(135deg,var(--accent),var(--accent-dim));
+  color:#000;
+}
+.msg-body{min-width:0;}
+.msg-header{
+  font-size:9px;letter-spacing:2px;color:var(--ink-dim);
+  margin-bottom:5px;text-transform:uppercase;
+}
+.msg.user .msg-header{text-align:right;}
+.msg-content{
+  background:var(--bg-card);
+  border:1px solid var(--line-bright);
+  border-radius:var(--radius);
+  padding:12px 16px;
+  white-space:pre-wrap;word-break:break-word;
+  line-height:1.65;font-size:13px;
+}
+.msg.user .msg-content{
+  border-color:rgba(88,166,255,.3);
+  background:rgba(88,166,255,.06);
+  color:var(--ink-bright);
+}
+.msg.assistant .msg-content{
+  border-color:var(--line-bright);color:var(--ink);
+}
+.msg-content code{
+  background:rgba(0,212,170,.08);color:var(--accent);
+  padding:1px 5px;border-radius:3px;font-size:12px;
+}
+.msg-content pre{
+  background:var(--bg-surface);border:1px solid var(--line-bright);
+  border-radius:var(--radius);padding:12px;margin:8px 0;
+  overflow-x:auto;font-size:12px;line-height:1.5;
+}
+.msg-content pre code{background:none;padding:0;color:var(--ink);}
+.msg-content h1,.msg-content h2,.msg-content h3,.msg-content h4,.msg-content h5,.msg-content h6{
+  color:var(--ink-bright);margin:12px 0 6px;line-height:1.4;
+}
+.msg-content h1{font-size:1.4em;border-bottom:1px solid var(--line-bright);padding-bottom:6px;}
+.msg-content h2{font-size:1.2em;border-bottom:1px solid var(--line);padding-bottom:4px;}
+.msg-content h3{font-size:1.1em;}
+.msg-content ul,.msg-content ol{margin:6px 0;padding-left:20px;}
+.msg-content li{margin:3px 0;}
+.msg-content blockquote{
+  border-left:3px solid var(--accent);padding:4px 12px;margin:8px 0;
+  color:var(--ink-dim);background:rgba(0,212,170,.03);
+}
+.msg-content table{border-collapse:collapse;margin:8px 0;width:100%;}
+.msg-content th,.msg-content td{
+  border:1px solid var(--line-bright);padding:6px 10px;text-align:left;font-size:12px;
+}
+.msg-content th{background:var(--bg-surface);color:var(--ink-bright);font-weight:600;}
+.msg-content a{color:var(--cyan);text-decoration:none;}
+.msg-content a:hover{text-decoration:underline;}
+.msg-content hr{border:none;border-top:1px solid var(--line-bright);margin:12px 0;}
+.msg-content p{margin:6px 0;}
+.msg-content img{max-width:100%;border-radius:var(--radius);}
+.cursor{
+  display:inline-block;width:8px;height:14px;
+  background:var(--accent);margin-left:2px;
+  animation:blink .8s step-end infinite;vertical-align:text-bottom;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+/* ─── Tool blocks ────────────────────────────────────────── */
+.tool-block{
+  border:1px solid var(--accent-dim);
+  border-radius:var(--radius);margin:8px 0;
+  background:rgba(0,212,170,.04);
+  overflow:hidden;font-size:12px;
+}
+.tool-header{
+  display:flex;align-items:center;gap:8px;
+  padding:6px 12px;
+  background:rgba(0,212,170,.07);
+  cursor:pointer;user-select:none;
+  border-bottom:1px solid var(--accent-dim);
+}
+.tool-icon{font-size:10px;color:var(--accent);}
+.tool-name{color:var(--accent);font-weight:700;letter-spacing:1px;}
+.tool-status{
+  margin-left:auto;font-size:9px;letter-spacing:1px;
+  text-transform:uppercase;padding:1px 6px;border-radius:2px;
+}
+.tool-status.running{color:var(--yellow);border:1px solid var(--yellow)30;}
+.tool-status.ok{color:var(--accent);border:1px solid var(--accent-dim);}
+.tool-status.err{color:var(--red);border:1px solid var(--red)30;}
+.tool-chevron{color:var(--ink-dim);font-size:10px;margin-left:4px;transition:transform .15s;}
+.tool-chevron.open{transform:rotate(90deg);}
+.tool-body{padding:10px 12px;display:none;}
+.tool-body.visible{display:block;}
+.tool-input-label,.tool-output-label{
+  font-size:9px;letter-spacing:2px;color:var(--ink-dim);
+  text-transform:uppercase;margin-bottom:4px;
+}
+.tool-input-label{color:var(--cyan);}
+.tool-output-label{color:var(--accent);margin-top:8px;}
+.tool-code{
+  background:var(--bg-surface);border:1px solid var(--line-bright);
+  border-radius:var(--radius);padding:8px 10px;
+  overflow-x:auto;white-space:pre-wrap;word-break:break-all;
+  font-size:11px;line-height:1.5;color:var(--ink);max-height:200px;overflow-y:auto;
+}
+.tool-code.err-output{border-color:var(--red)30;color:var(--red);}
+
+/* ─── Skill blocks (purple/violet theme) ─────────────────────────── */
+.tool-block.skill-block{
+  border-color:var(--violet);background:rgba(139,92,246,.04);
+}
+.tool-block.skill-block .tool-header{
+  background:rgba(139,92,246,.08);border-bottom-color:rgba(139,92,246,.3);
+}
+.tool-block.skill-block .tool-icon{color:var(--violet);}
+.tool-block.skill-block .tool-name{color:var(--violet);}
+.tool-block.skill-block .tool-status.running{color:var(--violet);border-color:rgba(139,92,246,.3);}
+.tool-block.skill-block .tool-status.ok{color:var(--violet);border-color:rgba(139,92,246,.3);}
+.skill-meta-row{
+  display:flex;align-items:center;gap:8px;font-size:10px;
+  padding:6px 12px;background:rgba(139,92,246,.05);border-bottom:1px solid rgba(139,92,246,.15);
+}
+.skill-meta-row .skill-label{color:var(--violet);font-weight:700;letter-spacing:1px;text-transform:uppercase;}
+.skill-meta-row .skill-value{color:var(--ink-bright);}
+
+/* ─── Agent blocks (cyan/blue theme) ─────────────────────────────── */
+.tool-block.agent-block{
+  border-color:var(--cyan);background:rgba(88,166,255,.04);
+}
+.tool-block.agent-block .tool-header{
+  background:rgba(88,166,255,.08);border-bottom-color:rgba(88,166,255,.3);
+}
+.tool-block.agent-block .tool-icon{color:var(--cyan);}
+.tool-block.agent-block .tool-name{color:var(--cyan);}
+.tool-block.agent-block .tool-status.running{color:var(--cyan);border-color:rgba(88,166,255,.3);}
+.tool-block.agent-block .tool-status.ok{color:var(--cyan);border-color:rgba(88,166,255,.3);}
+.agent-meta-row{
+  display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:10px;
+  padding:6px 12px;background:rgba(88,166,255,.05);border-bottom:1px solid rgba(88,166,255,.15);
+}
+.agent-meta-row .agent-badge{
+  padding:1px 6px;border-radius:2px;letter-spacing:1px;text-transform:uppercase;font-size:9px;
+}
+.agent-badge.type-badge{color:var(--cyan);border:1px solid rgba(88,166,255,.3);}
+.agent-badge.mode-badge{color:var(--yellow);border:1px solid rgba(227,179,65,.3);}
+.agent-badge.id-badge{color:var(--accent);border:1px solid var(--accent-dim);}
+.agent-desc{color:var(--ink-bright);font-size:11px;flex-basis:100%;margin-top:2px;}
+.agent-result-row{
+  display:flex;align-items:center;gap:8px;font-size:10px;
+  padding:6px 12px;background:rgba(88,166,255,.03);border-top:1px solid rgba(88,166,255,.1);
+}
+.agent-result-row .ar-label{color:var(--cyan);font-weight:700;letter-spacing:1px;text-transform:uppercase;}
+.agent-result-row .ar-value{color:var(--accent);font-family:var(--mono);}
+
+/* ─── Thinking process block (collapsible) ──────────────── */
+.thinking-block{
+  border:1px solid var(--accent-dim);border-radius:var(--radius);
+  margin:8px 0;overflow:hidden;background:rgba(0,212,170,.02);
+  transition:all .3s ease;
+}
+.thinking-header{
+  display:flex;align-items:center;gap:8px;padding:8px 14px;
+  background:rgba(0,212,170,.06);cursor:pointer;user-select:none;
+  border-bottom:1px solid var(--accent-dim);
+}
+.thinking-header:hover{background:rgba(0,212,170,.10);}
+.thinking-icon{font-size:14px;}
+.thinking-title{
+  color:var(--accent);font-weight:700;font-size:12px;
+  letter-spacing:1px;text-transform:uppercase;
+}
+.thinking-count{
+  font-size:10px;color:var(--ink-dim);margin-left:4px;
+  padding:1px 6px;border-radius:2px;border:1px solid var(--accent-dim);
+}
+.thinking-status{
+  margin-left:auto;font-size:9px;letter-spacing:1px;text-transform:uppercase;
+  padding:1px 6px;border-radius:2px;
+}
+.thinking-status.active{color:var(--yellow);border:1px solid var(--yellow)30;}
+.thinking-status.done{color:var(--accent);border:1px solid var(--accent-dim);}
+.thinking-chevron{
+  color:var(--ink-dim);font-size:10px;transition:transform .25s ease;
+}
+.thinking-chevron.open{transform:rotate(90deg);}
+.thinking-body{
+  max-height:0;overflow:hidden;transition:max-height .35s ease;
+}
+.thinking-body.expanded{
+  max-height:5000px;
+}
+.thinking-body .tool-block{margin:0;border-radius:0;border-left:0;border-right:0;border-top:0;}
+.thinking-body .tool-block:last-child{border-bottom:0;}
+.thinking-body .status-msg{border-left-width:2px;}
+
+@keyframes thinking-pulse{
+  0%,100%{opacity:1}50%{opacity:.5}
+}
+.thinking-status.active{
+  animation:thinking-pulse 1.5s ease-in-out infinite;
+}
+
+/* ─── Status / compact events ────────────────────────────── */
+.status-msg{
+  align-self:flex-start;font-size:11px;color:var(--ink-dim);
+  padding:3px 10px;border-left:2px solid var(--accent-dim);
+  background:rgba(0,212,170,.03);letter-spacing:.5px;
+}
+
+/* ─── Input area ─────────────────────────────────────────── */
+#input-area{
+  padding:14px 20px;
+  border-top:1px solid var(--line-bright);
+  background:rgba(9,13,20,.9);
+  flex-shrink:0;backdrop-filter:blur(8px);
+}
+.input-row{display:flex;gap:10px;align-items:flex-end;}
+#prompt-input{
+  flex:1;background:var(--bg-card);
+  border:1px solid var(--line-bright);
+  border-radius:var(--radius);
+  color:var(--ink-bright);font-family:var(--mono);font-size:13px;
+  padding:10px 14px;resize:none;min-height:44px;max-height:160px;
+  line-height:1.5;outline:none;transition:border-color .15s;
+}
+#prompt-input:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-glow);}
+#prompt-input::placeholder{color:var(--ink-dim);}
+#btn-send{
+  background:var(--accent);color:#000;
+  font-family:var(--mono);font-size:12px;font-weight:700;
+  border:none;border-radius:var(--radius);
+  padding:10px 18px;cursor:pointer;
+  letter-spacing:1px;white-space:nowrap;
+  transition:all .15s;height:44px;flex-shrink:0;
+}
+#btn-send:hover{background:var(--accent-light);box-shadow:0 0 12px var(--accent-glow);}
+#btn-send:disabled{background:var(--accent-dim);color:#000a;cursor:not-allowed;box-shadow:none;}
+.input-meta{
+  display:flex;align-items:center;gap:12px;margin-top:8px;
+  font-size:10px;color:var(--ink-dim);
+}
+.input-meta kbd{
+  background:var(--bg-elevated);border:1px solid var(--line-bright);
+  border-radius:2px;padding:0 4px;font-family:var(--mono);font-size:9px;
+  color:var(--ink-dim);
+}
+#char-count{margin-left:auto;}
+
+/* ─── Toast ──────────────────────────────────────────────── */
+#toast{
+  position:fixed;bottom:20px;right:20px;z-index:100;
+  background:var(--bg-elevated);border:1px solid var(--line-bright);
+  color:var(--ink);padding:10px 16px;border-radius:var(--radius);
+  font-size:12px;letter-spacing:.5px;
+  opacity:0;transform:translateY(8px);transition:all .2s;pointer-events:none;
+}
+#toast.show{opacity:1;transform:translateY(0);}
+#toast.ok{border-color:var(--accent-dim);color:var(--accent);}
+#toast.err{border-color:var(--red)30;color:var(--red);}
+
+/* ─── Modal ──────────────────────────────────────────────── */
+#modal-overlay{
+  display:none;position:fixed;inset:0;z-index:50;
+  background:rgba(0,0,0,.7);backdrop-filter:blur(4px);
+  align-items:center;justify-content:center;
+}
+#modal-overlay.show{display:flex;}
+.modal{
+  background:var(--bg-surface);border:1px solid var(--line-bright);
+  border-radius:var(--radius);padding:28px;width:420px;
+  box-shadow:0 20px 60px rgba(0,0,0,.5),0 0 0 1px var(--line);
+}
+.modal h2{
+  font-size:13px;letter-spacing:2px;color:var(--ink-bright);
+  text-transform:uppercase;margin-bottom:20px;
+  display:flex;align-items:center;gap:8px;
+}
+.modal h2 span{color:var(--accent);}
+.form-group{margin-bottom:14px;}
+.form-label{
+  display:block;font-size:10px;letter-spacing:2px;color:var(--ink-dim);
+  text-transform:uppercase;margin-bottom:5px;
+}
+.form-input{
+  width:100%;background:var(--bg-card);
+  border:1px solid var(--line-bright);border-radius:var(--radius);
+  color:var(--ink-bright);font-family:var(--mono);font-size:12px;
+  padding:8px 12px;outline:none;transition:border-color .15s;
+}
+.form-input:focus{border-color:var(--accent);}
+.form-input::placeholder{color:var(--ink-dim);}
+.modal-actions{
+  display:flex;gap:10px;margin-top:20px;justify-content:flex-end;
+}
+.btn-cancel{
+  background:transparent;border:1px solid var(--line-bright);
+  color:var(--ink-dim);font-family:var(--mono);font-size:11px;
+  padding:7px 16px;border-radius:var(--radius);cursor:pointer;
+  transition:all .12s;
+}
+.btn-cancel:hover{border-color:var(--ink-dim);color:var(--ink);}
+.btn-confirm{
+  background:var(--accent);color:#000;
+  font-family:var(--mono);font-size:11px;font-weight:700;
+  border:none;border-radius:var(--radius);
+  padding:7px 20px;cursor:pointer;letter-spacing:1px;
+  transition:all .15s;
+}
+.btn-confirm:hover{background:var(--accent-light);}
+
+/* ─── CWD picker button ──────────────────────────────── */
+.cwd-picker-btn{
+  width:100%;background:var(--bg-card);
+  border:1px solid var(--line-bright);border-radius:var(--radius);
+  color:var(--ink-bright);font-family:var(--mono);font-size:12px;
+  padding:8px 12px;cursor:pointer;display:flex;align-items:center;
+  gap:8px;transition:border-color .15s;text-align:left;
+}
+.cwd-picker-btn:hover{border-color:var(--accent);}
+.cwd-picker-btn .cwd-icon{margin-left:auto;color:var(--accent);font-size:13px;}
+.cwd-picker-btn .cwd-path{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cwd-picker-btn .cwd-hint{color:var(--ink-dim);font-size:11px;}
+
+/* ─── Dir picker overlay ─────────────────────────────── */
+#dir-picker-overlay{
+  display:none;position:fixed;inset:0;z-index:70;
+  background:rgba(0,0,0,.8);backdrop-filter:blur(6px);
+  align-items:center;justify-content:center;
+}
+#dir-picker-overlay.show{display:flex;}
+.dir-picker{
+  background:var(--bg-surface);border:1px solid var(--accent-dim);
+  border-radius:var(--radius);width:520px;max-height:80vh;
+  display:flex;flex-direction:column;
+  box-shadow:0 24px 80px rgba(0,0,0,.6),0 0 0 1px var(--accent-dim)30;
+}
+.dir-picker-header{
+  padding:14px 18px;border-bottom:1px solid var(--line-bright);
+  display:flex;align-items:center;gap:8px;flex-shrink:0;
+}
+.dir-picker-header .dp-title{
+  font-size:9px;letter-spacing:3px;color:var(--accent);
+  text-transform:uppercase;font-weight:700;
+}
+.dir-picker-header .dp-close{
+  margin-left:auto;background:none;border:none;
+  color:var(--ink-dim);cursor:pointer;font-size:14px;
+  font-family:var(--mono);padding:2px 6px;border-radius:2px;
+}
+.dir-picker-header .dp-close:hover{color:var(--ink);}
+.dir-breadcrumb{
+  padding:10px 18px;border-bottom:1px solid var(--line);
+  font-size:11px;color:var(--cyan);background:rgba(88,166,255,.04);
+  overflow-x:auto;white-space:nowrap;flex-shrink:0;display:flex;align-items:center;gap:4px;
+}
+.dp-crumb{cursor:pointer;color:var(--cyan);padding:1px 4px;border-radius:2px;}
+.dp-crumb:hover{background:var(--cyan-glow);}
+.dp-crumb-sep{color:var(--ink-dim);}
+.dir-list{overflow-y:auto;flex:1;padding:8px 0;}
+.dir-item{
+  padding:7px 18px;cursor:pointer;display:flex;align-items:center;gap:10px;
+  border-left:2px solid transparent;transition:background .1s;
+}
+.dir-item:hover{background:var(--bg-elevated);border-left-color:var(--accent-dim);}
+.dir-item.folder .di-icon{color:var(--yellow);font-size:12px;flex-shrink:0;}
+.dir-item.folder .di-name{color:var(--ink-bright);font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.dir-item.folder .di-enter{color:var(--accent);font-size:10px;opacity:0;transition:opacity .1s;}
+.dir-item.folder:hover .di-enter{opacity:1;}
+.dir-item.file{cursor:default;opacity:0.55;pointer-events:none;}
+.dir-item.file .di-icon{color:var(--ink-dim);font-size:12px;flex-shrink:0;}
+.dir-item.file .di-name{color:var(--ink-dim);font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.dir-item.parent{background:rgba(88,166,255,.04);}
+.dir-item.parent .di-icon{color:var(--cyan);}
+.dir-item.parent .di-name{color:var(--cyan);}
+.dir-empty{padding:30px 18px;color:var(--ink-dim);font-size:11px;text-align:center;}
+.dir-loading{padding:20px 18px;color:var(--accent);font-size:11px;letter-spacing:2px;text-align:center;animation:pulse 1s ease-in-out infinite;}
+.dir-picker-footer{
+  padding:12px 18px;border-top:1px solid var(--line-bright);
+  display:flex;align-items:center;gap:10px;flex-shrink:0;
+  background:rgba(0,212,170,.03);
+}
+.dp-selected-path{
+  flex:1;font-size:11px;color:var(--accent);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;
+}
+.dp-confirm{
+  background:var(--accent);color:#000;font-family:var(--mono);
+  font-size:11px;font-weight:700;border:none;border-radius:var(--radius);
+  padding:6px 16px;cursor:pointer;letter-spacing:1px;white-space:nowrap;
+}
+.dp-confirm:hover{background:var(--accent-light);}
+.dp-toggle-hidden{
+  background:transparent;border:1px solid var(--line-bright);
+  color:var(--ink-dim);font-family:var(--mono);font-size:10px;
+  padding:4px 10px;border-radius:var(--radius);cursor:pointer;
+  transition:all .12s;
+}
+.dp-toggle-hidden:hover{border-color:var(--ink-dim);color:var(--ink);}
+
+/* ─── Nav tabs ───────────────────────────────────────── */
+.nav-tabs{display:flex;gap:2px;margin-left:16px;}
+.nav-tab{
+  background:transparent;border:1px solid transparent;
+  color:var(--ink-dim);font-family:var(--mono);font-size:10px;
+  padding:4px 12px;border-radius:var(--radius);cursor:pointer;
+  letter-spacing:1px;transition:all .15s;text-transform:uppercase;
+}
+.nav-tab:hover{color:var(--ink);border-color:var(--line-bright);}
+.nav-tab.active{color:var(--accent);border-color:var(--accent-dim);background:var(--accent-glow);}
+
+/* ─── Skills page ────────────────────────────────────── */
+#skills-page{display:none;flex:1;overflow:hidden;flex-direction:column;}
+#skills-page.visible{display:flex;}
+.skills-toolbar{
+  padding:14px 20px;border-bottom:1px solid var(--line-bright);
+  background:rgba(13,17,23,.6);display:flex;align-items:center;gap:12px;flex-shrink:0;
+}
+.skills-toolbar .sk-title{
+  font-size:9px;letter-spacing:3px;color:var(--accent);text-transform:uppercase;font-weight:700;
+}
+.skills-toolbar .sk-count{
+  font-size:10px;color:var(--ink-dim);margin-left:4px;
+}
+#btn-new-skill{
+  background:transparent;border:1px solid var(--accent-dim);
+  color:var(--accent);font-family:var(--mono);font-size:10px;
+  padding:5px 14px;border-radius:var(--radius);cursor:pointer;
+  letter-spacing:1px;transition:all .15s;
+}
+#btn-new-skill:hover{background:var(--accent-glow);border-color:var(--accent);}
+#btn-download-skill{
+  margin-left:auto;background:transparent;border:1px solid var(--cyan);
+  color:var(--cyan);font-family:var(--mono);font-size:10px;
+  padding:5px 14px;border-radius:var(--radius);cursor:pointer;
+  letter-spacing:1px;transition:all .15s;
+}
+#btn-download-skill:hover{background:rgba(88,166,255,.08);border-color:var(--cyan);}
+#skills-list{
+  flex:1;overflow-y:auto;padding:16px 20px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.skill-card{
+  background:var(--bg-card);border:1px solid var(--line-bright);
+  border-radius:var(--radius);padding:14px 18px;
+  display:flex;align-items:center;gap:14px;
+  transition:border-color .15s;
+}
+.skill-card:hover{border-color:var(--accent-dim);}
+.skill-card.disabled{opacity:.5;}
+.skill-icon{
+  width:36px;height:36px;border-radius:var(--radius);
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;flex-shrink:0;
+  background:var(--accent-glow);border:1px solid var(--accent-dim);
+}
+.skill-card.disabled .skill-icon{background:var(--bg-elevated);border-color:var(--line-bright);}
+.skill-info{flex:1;min-width:0;}
+.skill-name{font-size:13px;color:var(--ink-bright);font-weight:600;}
+.skill-desc{font-size:11px;color:var(--ink-dim);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.skill-meta{display:flex;gap:8px;margin-top:4px;}
+.skill-badge{
+  font-size:9px;letter-spacing:1px;text-transform:uppercase;
+  padding:1px 6px;border-radius:2px;
+}
+.skill-badge.source-bundled{color:var(--cyan);border:1px solid rgba(88,166,255,.3);}
+.skill-badge.source-user{color:var(--violet);border:1px solid rgba(139,92,246,.3);}
+.skill-badge.source-plugin{color:var(--orange);border:1px solid rgba(247,129,102,.3);}
+.skill-badge.status-on{color:var(--accent);border:1px solid var(--accent-dim);}
+.skill-badge.status-off{color:var(--red);border:1px solid rgba(255,68,68,.3);}
+.skill-actions{display:flex;gap:6px;flex-shrink:0;}
+.sk-btn{
+  background:transparent;border:1px solid var(--line-bright);
+  color:var(--ink-dim);font-family:var(--mono);font-size:10px;
+  padding:4px 10px;border-radius:var(--radius);cursor:pointer;
+  transition:all .12s;letter-spacing:.5px;
+}
+.sk-btn:hover{border-color:var(--ink-dim);color:var(--ink);}
+.sk-btn.toggle-on{border-color:var(--accent-dim);color:var(--accent);}
+.sk-btn.toggle-on:hover{background:var(--accent-glow);}
+.sk-btn.delete{border-color:rgba(255,68,68,.3);color:var(--red);}
+.sk-btn.delete:hover{background:rgba(255,68,68,.08);}
+.skills-empty{
+  margin:auto;text-align:center;color:var(--ink-dim);padding:60px 20px;
+  font-size:12px;letter-spacing:1px;
+}
+
+/* ─── Skill modal ────────────────────────────────────── */
+#skill-modal-overlay{
+  display:none;position:fixed;inset:0;z-index:50;
+  background:rgba(0,0,0,.7);backdrop-filter:blur(4px);
+  align-items:center;justify-content:center;
+}
+#skill-modal-overlay.show{display:flex;}
+
+/* ─── Remote skills modal ────────────────────────────── */
+#remote-skills-overlay{
+  display:none;position:fixed;inset:0;z-index:50;
+  background:rgba(0,0,0,.7);backdrop-filter:blur(4px);
+  align-items:center;justify-content:center;
+}
+#remote-skills-overlay.show{display:flex;}
+#remote-skills-overlay .modal{max-width:700px;width:95%;max-height:80vh;display:flex;flex-direction:column;}
+.remote-skills-header{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.remote-skills-header select{
+  background:var(--bg-card);border:1px solid var(--line-bright);color:var(--ink);
+  font-family:var(--mono);font-size:11px;padding:5px 10px;border-radius:var(--radius);
+}
+.remote-skills-header .rs-status{font-size:10px;color:var(--ink-dim);margin-left:auto;}
+#remote-skills-list{
+  flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;
+  min-height:200px;max-height:50vh;
+}
+.rs-card{
+  background:var(--bg-elevated);border:1px solid var(--line-bright);
+  border-radius:var(--radius);padding:12px 14px;
+  display:flex;align-items:center;gap:12px;transition:border-color .15s;
+}
+.rs-card:hover{border-color:var(--accent-dim);}
+.rs-card.installed{opacity:.6;}
+.rs-info{flex:1;min-width:0;}
+.rs-name{font-size:12px;color:var(--ink-bright);font-weight:600;}
+.rs-desc{font-size:10px;color:var(--ink-dim);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.rs-source{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--cyan);margin-top:3px;}
+.rs-btn{
+  background:transparent;border:1px solid var(--accent-dim);color:var(--accent);
+  font-family:var(--mono);font-size:10px;padding:5px 12px;border-radius:var(--radius);
+  cursor:pointer;transition:all .12s;letter-spacing:.5px;white-space:nowrap;
+}
+.rs-btn:hover{background:var(--accent-glow);border-color:var(--accent);}
+.rs-btn:disabled{opacity:.4;cursor:not-allowed;}
+.rs-btn.installed-btn{border-color:var(--line-bright);color:var(--ink-dim);cursor:default;}
+.rs-empty{text-align:center;color:var(--ink-dim);padding:40px 20px;font-size:11px;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Navbar -->
+  <nav id="navbar">
+    <div class="nav-logo">
+      <span class="bracket">[</span>OH<span class="slash">/</span>WEB<span class="bracket">]</span>
+      <div class="nav-dot"></div>
+    </div>
+    <span class="nav-tag">// OPENHARNESS_INTERFACE</span>
+    <div class="nav-tabs">
+      <button class="nav-tab active" data-page="chat">CHAT</button>
+      <button class="nav-tab" data-page="skills">SKILLS</button>
+    </div>
+    <div class="nav-spacer"></div>
+    <span id="nav-model">NO SESSION</span>
+    <span id="nav-status">● READY</span>
+  </nav>
+
+  <!-- Main -->
+  <div id="main">
+
+    <!-- Sidebar -->
+    <aside id="sidebar">
+      <div class="sidebar-header">
+        <span>// SESSIONS</span>
+        <button id="btn-new-session">+ NEW</button>
+      </div>
+      <div id="session-list">
+        <div class="empty-state" style="padding:30px 16px;font-size:11px;color:var(--ink-dim);">
+          No sessions.<br/>Click NEW to start.
+        </div>
+      </div>
+      <div class="sidebar-footer">
+        <div id="sidebar-stats">Connecting to backend…</div>
+      </div>
+    </aside>
+
+    <!-- Chat area -->
+    <div id="chat-area">
+      <div id="session-bar" style="display:none">
+        <span id="session-id-display"></span>
+        <span id="session-cwd"></span>
+      </div>
+
+      <div id="messages">
+        <div class="empty-state">
+          <div class="ascii">
+░█████╗░██████╗░███████╗███╗░░██╗
+██╔══██╗██╔══██╗██╔════╝████╗░██║
+██║░░██║██████╦╝█████╗░░██╔██╗██║
+██║░░██║██╔══██╗██╔══╝░░██║╚████║
+╚█████╔╝██████╦╝███████╗██║░╚███║
+░╚════╝░╚═════╝░╚══════╝╚═╝░░╚══╝</div>
+          <div class="prompt-hint">// CREATE A SESSION TO BEGIN</div>
+        </div>
+      </div>
+
+      <div id="input-area">
+        <div class="input-row">
+          <textarea id="prompt-input" rows="1"
+            placeholder="// enter prompt… (Enter to send, Shift+Enter for newline)"
+            disabled></textarea>
+          <button id="btn-send" disabled>SEND ▶</button>
+        </div>
+        <div class="input-meta">
+          <span><kbd>Enter</kbd> send &nbsp;·&nbsp; <kbd>Shift+Enter</kbd> newline</span>
+          <span id="char-count">0 chars</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Skills page -->
+    <div id="skills-page">
+      <div class="skills-toolbar">
+        <span class="sk-title">// SKILLS REGISTRY</span>
+        <span class="sk-count" id="skills-count"></span>
+        <button id="btn-download-skill">⬇ DOWNLOAD</button>
+        <button id="btn-new-skill">+ NEW SKILL</button>
+      </div>
+      <div id="skills-list">
+        <div class="skills-empty">// LOADING SKILLS…</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Remote skills download modal -->
+<div id="remote-skills-overlay">
+  <div class="modal">
+    <h2><span>//</span> DOWNLOAD SKILLS</h2>
+    <div class="remote-skills-header">
+      <select id="remote-source-select">
+        <option value="all">All Sources</option>
+        <option value="anthropics">Anthropic (GitHub)</option>
+        <option value="skills_sh">skills.sh</option>
+      </select>
+      <span class="rs-status" id="remote-skills-status"></span>
+    </div>
+    <div id="remote-skills-list">
+      <div class="rs-empty">// SELECT A SOURCE AND CLICK REFRESH</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="remote-skills-close">CLOSE</button>
+      <button class="btn-confirm" id="remote-skills-refresh">REFRESH ⟳</button>
+    </div>
+  </div>
+</div>
+
+<!-- New skill modal -->
+<div id="skill-modal-overlay">
+  <div class="modal">
+    <h2><span>//</span> NEW SKILL</h2>
+    <div class="form-group">
+      <label class="form-label">Skill Name</label>
+      <input class="form-input" id="skill-modal-name" placeholder="my-skill" type="text"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <input class="form-input" id="skill-modal-desc" placeholder="A brief description of what this skill does" type="text"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Content (Markdown)</label>
+      <textarea class="form-input" id="skill-modal-content" rows="6" placeholder="# My Skill\n\nInstructions for the agent..." style="resize:vertical;min-height:100px;"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="skill-modal-cancel">CANCEL</button>
+      <button class="btn-confirm" id="skill-modal-confirm">CREATE ▶</button>
+    </div>
+  </div>
+</div>
+
+<!-- New session modal -->
+<div id="modal-overlay">
+  <div class="modal">
+    <h2><span>//</span> NEW SESSION</h2>
+    <div class="form-group">
+      <label class="form-label">Session Name</label>
+      <input class="form-input" id="modal-name" placeholder="my-session" type="text"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Working Directory</label>
+      <button class="cwd-picker-btn" id="btn-pick-cwd" type="button">
+        <span class="cwd-path cwd-hint" id="cwd-display">// click to browse…</span>
+        <span class="cwd-icon">📂</span>
+      </button>
+      <input type="hidden" id="modal-cwd"/>
+      <div style="margin-top:4px;font-size:10px;color:var(--ink-dim);letter-spacing:0.5px;">Agent can read/write inside workdir, read-only outside.</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Provider</label>
+      <select class="form-input" id="modal-model" style="background:var(--bg2);color:var(--fg);cursor:pointer;">
+        <option value="">-- loading providers... --</option>
+      </select>
+    </div>
+    <div class="form-group" id="specific-model-group" style="display:none;">
+      <label class="form-label">Model</label>
+      <select class="form-input" id="modal-specific-model" style="background:var(--bg2);color:var(--fg);cursor:pointer;">
+        <option value="">-- use provider default --</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="modal-cancel">CANCEL</button>
+      <button class="btn-confirm" id="modal-confirm">CREATE ▶</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Dir picker overlay (z:70, above session modal z:50) -->
+<div id="dir-picker-overlay">
+  <div class="dir-picker">
+    <div class="dir-picker-header">
+      <span class="dp-title">// SELECT DIRECTORY</span>
+      <button class="dp-close" id="dp-close">✕</button>
+    </div>
+    <div class="dir-breadcrumb" id="dp-breadcrumb"></div>
+    <div class="dir-list" id="dp-list"></div>
+    <div class="dir-picker-footer">
+      <button class="dp-toggle-hidden" id="dp-toggle-hidden">SHOW HIDDEN</button>
+      <span class="dp-selected-path" id="dp-selected-path">// click folder=browse &nbsp;|&nbsp; dblclick=select</span>
+      <button class="dp-confirm" id="dp-confirm" title="Select current directory shown in breadcrumb">USE CURRENT ▶</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ─── State ───────────────────────────────────────────── */
+let activeSessionId = null;
+let isStreaming = false;
+let currentAssistantEl = null;
+let currentTextNode = null;
+
+/* ─── Utils ───────────────────────────────────────────── */
+function toast(msg, type='ok'){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `show ${type}`;
+  clearTimeout(el._t);
+  el._t = setTimeout(()=>{ el.className = ''; }, 3000);
+}
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function autoResize(ta){
+  ta.style.height='auto';
+  ta.style.height=Math.min(ta.scrollHeight,160)+'px';
+}
+
+function scrollBottom(){
+  const m=document.getElementById('messages');
+  m.scrollTop=m.scrollHeight;
+}
+
+function setNavStatus(text, color='var(--ink-dim)'){
+  const el=document.getElementById('nav-status');
+  el.textContent=text;
+  el.style.color=color;
+}
+
+/* ─── API helpers ─────────────────────────────────────── */
+async function apiGet(path){
+  const r=await fetch(path);
+  if(!r.ok) throw new Error(`GET ${path} → ${r.status}`);
+  return r.json();
+}
+async function apiPost(path, body){
+  const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!r.ok){const t=await r.text(); throw new Error(t);}
+  return r;
+}
+async function apiDelete(path){
+  const r=await fetch(path,{method:'DELETE'});
+  if(!r.ok) throw new Error(`DELETE ${path} → ${r.status}`);
+  return r.json();
+}
+
+/* ─── Session list ────────────────────────────────────── */
+async function refreshSessions(){
+  try{
+    const data=await apiGet('/api/sessions');
+    const status=await apiGet('/api/status');
+    renderSessionList(data.sessions||[]);
+    document.getElementById('sidebar-stats').innerHTML=
+      `sessions: <span style="color:var(--accent)">${status.session_count}</span>`;
+  }catch(e){
+    document.getElementById('sidebar-stats').innerHTML=
+      `<span style="color:var(--red)">⚠ backend unreachable</span>`;
+  }
+}
+
+function renderSessionList(sessions){
+  const list=document.getElementById('session-list');
+  if(!sessions.length){
+    list.innerHTML='<div style="padding:20px 16px;font-size:11px;color:var(--ink-dim)">No sessions.<br/>Click NEW to start.</div>';
+    return;
+  }
+  list.innerHTML=sessions.map(s=>{
+    const liveTag = s.live ? '<span style="color:var(--accent);font-size:8px;margin-left:4px;">● LIVE</span>' : '<span style="color:var(--ink-dim);font-size:8px;margin-left:4px;">○ SAVED</span>';
+    return `
+    <div class="session-item${s.session_id===activeSessionId?' active':''}" data-id="${s.session_id}" data-live="${s.live?'1':'0'}">
+      <button class="s-delete" data-id="${s.session_id}" title="Delete">✕</button>
+      <div class="s-name">${esc(s.name)}${liveTag}</div>
+      <div class="s-meta">${esc(s.model.split('/').pop().slice(0,22))} · ${s.message_count} msgs${s.cwd?' · 📂 '+esc(s.cwd.split('/').pop()):''}</div>
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('.session-item').forEach(el=>{
+    el.addEventListener('click', e=>{
+      if(e.target.classList.contains('s-delete')) return;
+      selectSession(el.dataset.id, sessions.find(s=>s.session_id===el.dataset.id));
+    });
+  });
+  list.querySelectorAll('.s-delete').forEach(btn=>{
+    btn.addEventListener('click', async e=>{
+      e.stopPropagation();
+      await deleteSession(btn.dataset.id);
+    });
+  });
+}
+
+async function selectSession(sid, meta){
+  activeSessionId=sid;
+  await refreshSessions();
+  // Load history (works for both live and DB-persisted sessions)
+  try{
+    const data=await apiGet(`/api/sessions/${sid}/history`);
+    renderHistory(data.messages||[], data.model);
+  }catch(e){ toast('Failed to load history','err'); }
+  const bar=document.getElementById('session-bar');
+  bar.style.display='flex';
+  document.getElementById('session-id-display').textContent='// '+sid.slice(0,12);
+  document.getElementById('session-cwd').textContent=(meta&&meta.cwd)||'';
+  document.getElementById('nav-model').textContent=(meta&&meta.model)||'';
+  // Enable input for all sessions (non-live will auto-restore on first chat)
+  document.getElementById('prompt-input').disabled=false;
+  document.getElementById('btn-send').disabled=false;
+  document.getElementById('prompt-input').focus();
+  const isLive = meta && meta.live !== false;
+  setNavStatus(isLive ? '● CONNECTED' : '● SAVED (will restore on chat)', isLive ? 'var(--accent)' : 'var(--yellow)');
+}
+
+function renderHistory(messages, model){
+  const container=document.getElementById('messages');
+  if(!messages.length){
+    container.innerHTML='<div class="empty-state" style="padding:40px 0;color:var(--ink-dim);font-size:11px;letter-spacing:1px">// NEW SESSION — ENTER PROMPT TO BEGIN</div>';
+    return;
+  }
+  container.innerHTML='';
+  messages.forEach(m=>appendMessage(m.role, m.text, false));
+  scrollBottom();
+}
+
+async function deleteSession(sid){
+  try{
+    await apiDelete(`/api/sessions/${sid}`);
+    if(activeSessionId===sid){
+      activeSessionId=null;
+      document.getElementById('messages').innerHTML=`
+        <div class="empty-state">
+          <div class="prompt-hint">// SELECT OR CREATE A SESSION</div>
+        </div>`;
+      document.getElementById('session-bar').style.display='none';
+      document.getElementById('prompt-input').disabled=true;
+      document.getElementById('btn-send').disabled=true;
+      document.getElementById('nav-model').textContent='NO SESSION';
+      setNavStatus('● READY');
+    }
+    await refreshSessions();
+    toast('Session deleted');
+  }catch(e){ toast('Delete failed: '+e.message,'err'); }
+}
+
+/* ─── New session modal ────────────────────────────── */
+document.getElementById('btn-new-session').addEventListener('click',()=>{
+  document.getElementById('modal-name').value='';
+  document.getElementById('modal-cwd').value='';
+  document.getElementById('cwd-display').textContent='// click to browse…';
+  document.getElementById('cwd-display').className='cwd-path cwd-hint';
+  document.getElementById('modal-overlay').classList.add('show');
+  loadProfiles();
+  setTimeout(()=>document.getElementById('modal-name').focus(),100);
+});
+document.getElementById('modal-cancel').addEventListener('click',()=>{
+  document.getElementById('modal-overlay').classList.remove('show');
+});
+document.getElementById('modal-confirm').addEventListener('click', createSession);
+document.getElementById('modal-model').addEventListener('change', updateModelOptions);
+document.getElementById('modal-overlay').addEventListener('click',e=>{
+  if(e.target===document.getElementById('modal-overlay'))
+    document.getElementById('modal-overlay').classList.remove('show');
+});
+
+/* ─── Dir picker ───────────────────────────────────── */
+let dpCurrentPath = null;
+let dpSelectedPath = null;
+let dpShowHidden = false;
+let dpFsData = null;
+let dpClickTimer = null;
+
+document.getElementById('btn-pick-cwd').addEventListener('click', openDirPicker);
+document.getElementById('dp-close').addEventListener('click', closeDirPicker);
+document.getElementById('dp-confirm').addEventListener('click', confirmDirPick);
+document.getElementById('dp-toggle-hidden').addEventListener('click', ()=>{
+  dpShowHidden = !dpShowHidden;
+  const btn = document.getElementById('dp-toggle-hidden');
+  btn.textContent = dpShowHidden ? 'HIDE HIDDEN' : 'SHOW HIDDEN';
+  btn.style.color = dpShowHidden ? 'var(--accent)' : '';
+  btn.style.borderColor = dpShowHidden ? 'var(--accent-dim)' : '';
+  if(dpFsData) renderDirList(dpFsData);
+});
+
+async function openDirPicker(){
+  dpShowHidden = false;
+  document.getElementById('dp-toggle-hidden').textContent = 'SHOW HIDDEN';
+  document.getElementById('dp-toggle-hidden').style.color = '';
+  const startPath = document.getElementById('modal-cwd').value || '~';
+  document.getElementById('dir-picker-overlay').classList.add('show');
+  await browseTo(startPath);
+}
+
+function closeDirPicker(){
+  document.getElementById('dir-picker-overlay').classList.remove('show');
+}
+
+function confirmDirPick(){
+  if(!dpCurrentPath) return;
+  dpSelectedPath = dpCurrentPath;
+  document.getElementById('modal-cwd').value = dpSelectedPath;
+  const disp = document.getElementById('cwd-display');
+  disp.textContent = dpSelectedPath;
+  disp.className = 'cwd-path';
+  closeDirPicker();
+}
+
+async function browseTo(path){
+  const list = document.getElementById('dp-list');
+  const crumb = document.getElementById('dp-breadcrumb');
+  list.innerHTML = '<div class="dir-loading">// LOADING…</div>';
+  crumb.innerHTML = '';
+  try{
+    const r = await fetch('/api/fs/ls?path='+encodeURIComponent(path));
+    if(!r.ok) throw new Error(await r.text());
+    const data = await r.json();
+    dpFsData = data;
+    dpCurrentPath = data.path;
+    document.getElementById('dp-selected-path').textContent = data.path;
+    renderBreadcrumb(data.path);
+    renderDirList(data);
+  }catch(e){
+    list.innerHTML = `<div class="dir-empty">⚠ ${esc(e.message)}</div>`;
+  }
+}
+
+function renderBreadcrumb(path){
+  const crumb = document.getElementById('dp-breadcrumb');
+  const parts = path.replace(/\/+$/,'').split('/');
+  let html = '';
+  let acc = '';
+  parts.forEach((p,i)=>{
+    if(i===0 && p===''){
+      html += `<span class="dp-crumb" data-path="/">/</span>`;
+      acc = '/';
+    } else if(p) {
+      acc = acc==='/' ? '/'+p : acc+'/'+p;
+      html += `<span class="dp-crumb-sep">/</span><span class="dp-crumb" data-path="${esc(acc)}">${esc(p)}</span>`;
+    }
+  });
+  crumb.innerHTML = html;
+  crumb.querySelectorAll('.dp-crumb').forEach(el=>{
+    el.addEventListener('click', ()=> browseTo(el.dataset.path));
+  });
+}
+
+function renderDirList(data){
+  const list = document.getElementById('dp-list');
+  const dirs = dpShowHidden
+    ? [...(data.dirs||[]), ...(data.hidden_dirs||[])]
+    : (data.dirs||[]);
+  dirs.sort((a,b)=>a.name.localeCompare(b.name));
+
+  const files = dpShowHidden
+    ? [...(data.files||[]), ...(data.hidden_files||[])]
+    : (data.files||[]);
+  files.sort((a,b)=>a.name.localeCompare(b.name));
+
+  let html = '';
+  if(data.parent){
+    html += `<div class="dir-item parent folder" data-path="${esc(data.parent)}" title="Single click: go up">
+      <span class="di-icon">↑</span>
+      <span class="di-name">.. (parent directory)</span>
+      <span class="di-enter">→ up</span>
+    </div>`;
+  }
+  if(!dirs.length && !files.length){
+    html += '<div class="dir-empty">Empty directory.</div>';
+  } else {
+    html += dirs.map(d=>`
+      <div class="dir-item folder" data-path="${esc(d.path)}" title="Click: browse in | Double-click: select this folder">
+        <span class="di-icon">📁</span>
+        <span class="di-name">${esc(d.name)}</span>
+        <span class="di-enter">dblclick=select</span>
+      </div>`).join('');
+    if(files.length){
+      html += `<div class="dir-empty" style="padding:6px 18px;font-size:10px;letter-spacing:1px;color:var(--ink-dim);border-top:1px solid var(--line);">// FILES (reference only)</div>`;
+      html += files.map(f=>`
+        <div class="dir-item file" data-path="${esc(f.path)}">
+          <span class="di-icon">📄</span>
+          <span class="di-name">${esc(f.name)}</span>
+        </div>`).join('');
+    }
+  }
+  list.innerHTML = html;
+
+  list.querySelectorAll('.dir-item.folder').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      // single click: browse into folder (with dblclick guard)
+      if(dpClickTimer !== null) return;
+      dpClickTimer = setTimeout(()=>{
+        dpClickTimer = null;
+        browseTo(el.dataset.path);
+      }, 220);
+    });
+    el.addEventListener('dblclick', e=>{
+      e.stopPropagation();
+      clearTimeout(dpClickTimer);
+      dpClickTimer = null;
+      // double click: select this folder as cwd and close
+      dpCurrentPath = el.dataset.path;
+      confirmDirPick();
+    });
+  });
+}
+
+let _cachedProfiles=[];
+async function loadProfiles(){
+  try{
+    const r=await fetch('/api/profiles');
+    const data=await r.json();
+    const sel=document.getElementById('modal-model');
+    sel.innerHTML='';
+    const profiles=data.profiles||[];
+    _cachedProfiles=profiles;
+    // Add a "use active default" option
+    const defOpt=document.createElement('option');
+    defOpt.value='';
+    defOpt.textContent='-- use active default --';
+    sel.appendChild(defOpt);
+    profiles.forEach(p=>{
+      const opt=document.createElement('option');
+      opt.value=p.id;
+      const badge=p.configured?'[KEY OK]':'[NO KEY]';
+      opt.textContent=`${badge} ${p.label}  (${p.default_model||'?'})`;
+      if(!p.configured) opt.style.color='var(--red)';
+      else opt.style.color='var(--green)';
+      if(p.is_active) opt.selected=true;
+      sel.appendChild(opt);
+    });
+    // Trigger model list update for the initially selected profile
+    updateModelOptions();
+  }catch(e){
+    console.warn('Failed to load profiles:',e);
+  }
+}
+
+function updateModelOptions(){
+  const sel=document.getElementById('modal-model');
+  const modelGroup=document.getElementById('specific-model-group');
+  const modelSel=document.getElementById('modal-specific-model');
+  const profileId=sel.value;
+  const profile=_cachedProfiles.find(p=>p.id===profileId);
+  if(profile&&profile.allowed_models&&profile.allowed_models.length>1){
+    modelGroup.style.display='';
+    modelSel.innerHTML='';
+    const defOpt=document.createElement('option');
+    defOpt.value='';
+    defOpt.textContent=`-- use default (${profile.default_model||'?'}) --`;
+    modelSel.appendChild(defOpt);
+    profile.allowed_models.forEach(m=>{
+      const opt=document.createElement('option');
+      opt.value=m;
+      opt.textContent=m;
+      if(m===profile.default_model) opt.textContent+=' (default)';
+      modelSel.appendChild(opt);
+    });
+  }else{
+    modelGroup.style.display='none';
+    modelSel.innerHTML='';
+  }
+}
+
+async function createSession(){
+  const name=document.getElementById('modal-name').value.trim()||null;
+  const cwd=document.getElementById('modal-cwd').value.trim()||null;
+  const selEl=document.getElementById('modal-model');
+  const selectedProfile=selEl.value||null;  // profile id, e.g. "dashscope"
+  const modelSel=document.getElementById('modal-specific-model');
+  const selectedModel=modelSel.value||null;  // specific model, e.g. "qwen3.5-plus"
+  document.getElementById('modal-overlay').classList.remove('show');
+  setNavStatus('● CONNECTING…','var(--yellow)');
+  try{
+    const payload={name,cwd,permission_mode:'auto'};
+    if(selectedProfile) payload.active_profile=selectedProfile;
+    if(selectedModel) payload.model=selectedModel;
+    const r=await apiPost('/api/sessions',payload);
+    const data=await r.json();
+    toast('Session created: '+data.session_id.slice(0,8));
+    await refreshSessions();
+    await selectSession(data.session_id,{model:data.model,cwd:data.cwd});
+  }catch(e){
+    toast('Failed to create session: '+e.message,'err');
+    setNavStatus('● ERROR','var(--red)');
+  }
+}
+
+/* ─── Message rendering ───────────────────────────────── */
+function appendMessage(role, text, animate=false){
+  const container=document.getElementById('messages');
+  // Remove empty state
+  const empty=container.querySelector('.empty-state');
+  if(empty) empty.remove();
+
+  const div=document.createElement('div');
+  div.className=`msg ${role}`;
+
+  const avatar=document.createElement('div');
+  avatar.className='msg-avatar';
+  avatar.textContent=role==='user'?'YOU':'OH';
+
+  const body=document.createElement('div');
+  body.className='msg-body';
+
+  const header=document.createElement('div');
+  header.className='msg-header';
+  header.textContent=role==='user'?'// USER':'// OPENHARNESS';
+
+  const content=document.createElement('div');
+  content.className='msg-content';
+
+  if(animate){
+    // Streaming: start empty, cursor shown
+    const cursor=document.createElement('span');
+    cursor.className='cursor';
+    content.appendChild(cursor);
+    currentTextNode=document.createTextNode('');
+    content.insertBefore(currentTextNode,cursor);
+    currentAssistantEl={content,cursor};
+  } else {
+    content.innerHTML=renderMarkdown(text);
+  }
+
+  body.appendChild(header);
+  body.appendChild(content);
+  div.appendChild(avatar);
+  div.appendChild(body);
+  container.appendChild(div);
+  scrollBottom();
+  return {content};
+}
+
+function renderMarkdown(text){
+  // Use marked library for full Markdown rendering
+  if(typeof marked !== 'undefined' && marked.parse){
+    try{
+      return marked.parse(text, {breaks: true, gfm: true});
+    }catch(e){
+      console.warn('Markdown parse error:', e);
+    }
+  }
+  // Fallback: minimal rendering
+  let html=esc(text);
+  html=html.replace(/```(\w*)\n?([\s\S]*?)```/g,(_,lang,code)=>`<pre><code>${code}</code></pre>`);
+  html=html.replace(/`([^`]+)`/g,'<code>$1</code>');
+  html=html.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+  return html;
+}
+
+function appendToolBlock(toolName, inputObj, extraMeta){
+  // Ensure thinking block exists, append tool inside it
+  const thinkWrap=ensureThinkingBlock();
+  const container=thinkWrap.querySelector('.thinking-body');
+
+  const wrap=document.createElement('div');
+  const category = (extraMeta && extraMeta.category) || '';
+  wrap.className='tool-block' + (category==='skill'?' skill-block':'') + (category==='agent'?' agent-block':'');
+  wrap.dataset.tool=toolName;
+  wrap.dataset.category=category;
+
+  const inputStr=JSON.stringify(inputObj,null,2);
+
+  // Choose icon and display name based on category
+  let icon='⚙', displayName=toolName;
+  let metaHtml='';
+  if(category==='skill'){
+    icon='📜';
+    const sn = extraMeta.skill_name || '';
+    displayName = 'SKILL // ' + (sn || toolName);
+    metaHtml=`<div class="skill-meta-row">
+      <span class="skill-label">Skill:</span>
+      <span class="skill-value">${esc(sn)}</span>
+    </div>`;
+  } else if(category==='agent'){
+    icon='🤖';
+    const at = extraMeta.agent_type || 'general';
+    const ad = extraMeta.agent_description || '';
+    const am = extraMeta.agent_mode || 'local_agent';
+    displayName = 'AGENT // ' + at;
+    metaHtml=`<div class="agent-meta-row">
+      <span class="agent-badge type-badge">${esc(at)}</span>
+      <span class="agent-badge mode-badge">${esc(am)}</span>
+      ${ad ? '<span class="agent-desc">' + esc(ad) + '</span>' : ''}
+    </div>`;
+  }
+
+  wrap.innerHTML=`
+    <div class="tool-header">
+      <span class="tool-icon">${icon}</span>
+      <span class="tool-name">${esc(displayName)}</span>
+      <span class="tool-status running">RUNNING</span>
+      <span class="tool-chevron">▶</span>
+    </div>
+    ${metaHtml}
+    <div class="tool-body">
+      <div class="tool-input-label">// INPUT</div>
+      <div class="tool-code">${esc(inputStr)}</div>
+      <div class="tool-output-label">// OUTPUT</div>
+      <div class="tool-code tool-output" style="color:var(--ink-dim)">…waiting</div>
+    </div>`;
+
+  // Toggle
+  wrap.querySelector('.tool-header').addEventListener('click',()=>{
+    const body=wrap.querySelector('.tool-body');
+    const chev=wrap.querySelector('.tool-chevron');
+    body.classList.toggle('visible');
+    chev.classList.toggle('open');
+  });
+
+  container.appendChild(wrap);
+  bumpThinkingCount();
+  scrollBottom();
+  return wrap;
+}
+
+function finishToolBlock(wrap, output, isError, extraMeta){
+  if(!wrap) return;
+  const status=wrap.querySelector('.tool-status');
+  const outEl=wrap.querySelector('.tool-output');
+  status.textContent=isError?'ERROR':'OK';
+  status.className='tool-status '+(isError?'err':'ok');
+  if(outEl){
+    outEl.textContent=output;
+    if(isError) outEl.classList.add('err-output');
+  }
+  // Add agent result details if available
+  if(extraMeta && extraMeta.category==='agent' && !isError){
+    const aid = extraMeta.agent_id || '';
+    const tid = extraMeta.task_id || '';
+    const bt  = extraMeta.backend_type || '';
+    if(aid || tid){
+      const row=document.createElement('div');
+      row.className='agent-result-row';
+      row.innerHTML=`
+        <span class="ar-label">Result:</span>
+        ${aid?'<span class="agent-badge id-badge">ID: '+esc(aid)+'</span>':''}
+        ${tid?'<span class="agent-badge id-badge">Task: '+esc(tid)+'</span>':''}
+        ${bt?'<span class="agent-badge mode-badge">Backend: '+esc(bt)+'</span>':''}
+      `;
+      // Insert before tool-body
+      const body=wrap.querySelector('.tool-body');
+      if(body) wrap.insertBefore(row, body);
+      else wrap.appendChild(row);
+    }
+  }
+}
+
+function appendStatusMsg(text){
+  // If thinking block exists, status goes inside it
+  let container;
+  if(currentThinkingBlock){
+    container=currentThinkingBlock.querySelector('.thinking-body');
+  } else {
+    container=document.getElementById('messages');
+  }
+  const div=document.createElement('div');
+  div.className='status-msg';
+  div.textContent='// '+text;
+  container.appendChild(div);
+  scrollBottom();
+}
+
+/* ─── SSE streaming ───────────────────────────────────── */
+const toolMap={};
+
+/* ─── Thinking block helpers ─────────────────────────── */
+let currentThinkingBlock=null;
+let thinkingStepCount=0;
+
+function ensureThinkingBlock(){
+  if(currentThinkingBlock) return currentThinkingBlock;
+  const container=document.getElementById('messages');
+  const wrap=document.createElement('div');
+  wrap.className='thinking-block';
+  wrap.innerHTML=`
+    <div class="thinking-header">
+      <span class="thinking-icon">🧠</span>
+      <span class="thinking-title">思考过程</span>
+      <span class="thinking-count">0 steps</span>
+      <span class="thinking-status active">THINKING</span>
+      <span class="thinking-chevron open">▶</span>
+    </div>
+    <div class="thinking-body expanded"></div>`;
+  wrap.querySelector('.thinking-header').addEventListener('click',()=>{
+    const body=wrap.querySelector('.thinking-body');
+    const chev=wrap.querySelector('.thinking-chevron');
+    body.classList.toggle('expanded');
+    chev.classList.toggle('open');
+  });
+  container.appendChild(wrap);
+  currentThinkingBlock=wrap;
+  thinkingStepCount=0;
+  scrollBottom();
+  return wrap;
+}
+
+function bumpThinkingCount(){
+  thinkingStepCount++;
+  if(currentThinkingBlock){
+    const cnt=currentThinkingBlock.querySelector('.thinking-count');
+    if(cnt) cnt.textContent=thinkingStepCount+' step'+(thinkingStepCount>1?'s':'');
+  }
+}
+
+function collapseThinking(){
+  if(!currentThinkingBlock) return;
+  const body=currentThinkingBlock.querySelector('.thinking-body');
+  const chev=currentThinkingBlock.querySelector('.thinking-chevron');
+  const st=currentThinkingBlock.querySelector('.thinking-status');
+  if(body) body.classList.remove('expanded');
+  if(chev) chev.classList.remove('open');
+  if(st){st.textContent='DONE';st.className='thinking-status done';}
+  currentThinkingBlock=null;
+  thinkingStepCount=0;
+}
+
+async function sendMessage(prompt){
+  if(!activeSessionId||isStreaming) return;
+  isStreaming=true;
+  setNavStatus('● THINKING…','var(--yellow)');
+  document.getElementById('btn-send').disabled=true;
+  document.getElementById('prompt-input').disabled=true;
+
+  // Append user message
+  appendMessage('user', prompt, false);
+
+  // Prepare assistant message slot
+  appendMessage('assistant', '', true);
+
+  // Reset thinking block for this turn
+  currentThinkingBlock=null;
+  thinkingStepCount=0;
+
+  try{
+    const response=await fetch(`/api/chat/${activeSessionId}`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt})
+    });
+    if(!response.ok) throw new Error('HTTP '+response.status);
+
+    const reader=response.body.getReader();
+    const decoder=new TextDecoder();
+    let buf='';
+    let currentToolWrap=null;
+    let assistantText='';
+
+    while(true){
+      const {done,value}=await reader.read();
+      if(done) break;
+      buf+=decoder.decode(value,{stream:true});
+      const lines=buf.split('\n');
+      buf=lines.pop();
+      for(const line of lines){
+        if(!line.startsWith('data: ')) continue;
+        const raw=line.slice(6).trim();
+        if(raw==='[DONE]') break;
+        let evt;
+        try{ evt=JSON.parse(raw); }catch{ continue; }
+        handleStreamEvent(evt, {
+          get toolWrap(){ return currentToolWrap; },
+          set toolWrap(v){ currentToolWrap=v; },
+          get assistantText(){ return assistantText; },
+          set assistantText(v){ assistantText=v; },
+        });
+      }
+    }
+    // Collapse thinking process on stream end
+    collapseThinking();
+    // Clean up cursor
+    if(currentAssistantEl){
+      currentAssistantEl.cursor.remove();
+      // Re-render with markdown
+      currentAssistantEl.content.innerHTML=renderMarkdown(assistantText);
+      currentAssistantEl=null;
+      currentTextNode=null;
+    }
+    setNavStatus('● READY','var(--accent)');
+  }catch(e){
+    toast('Error: '+e.message,'err');
+    setNavStatus('● ERROR','var(--red)');
+    collapseThinking();
+    if(currentAssistantEl){
+      currentAssistantEl.cursor.remove();
+      currentAssistantEl.content.textContent='[Error: '+e.message+']';
+      currentAssistantEl.content.style.color='var(--red)';
+      currentAssistantEl=null;
+    }
+  }finally{
+    isStreaming=false;
+    document.getElementById('btn-send').disabled=false;
+    document.getElementById('prompt-input').disabled=false;
+    document.getElementById('prompt-input').focus();
+    await refreshSessions();
+  }
+}
+
+function handleStreamEvent(evt, ctx){
+  if(evt.type==='text_delta'){
+    ctx.assistantText+=evt.text;
+    if(currentTextNode) currentTextNode.nodeValue=ctx.assistantText;
+    scrollBottom();
+  } else if(evt.type==='turn_complete'){
+    // handled in finally
+  } else if(evt.type==='tool_start'){
+    // Pass extra metadata for skill/agent enriched display
+    const wrap=appendToolBlock(evt.name, evt.input||{}, evt);
+    toolMap[evt.name+'_last']=wrap;
+    ctx.toolWrap=wrap;
+    // Show status hints for skill / agent
+    if(evt.category==='skill'){
+      setNavStatus('📜 LOADING SKILL: '+(evt.skill_name||evt.name),'var(--violet)');
+    } else if(evt.category==='agent'){
+      setNavStatus('🤖 SPAWNING AGENT: '+(evt.agent_type||'agent'),'var(--cyan)');
+    } else {
+      setNavStatus('⚙ TOOL: '+evt.name,'var(--yellow)');
+    }
+  } else if(evt.type==='tool_end'){
+    const wrap=toolMap[evt.name+'_last']||ctx.toolWrap;
+    finishToolBlock(wrap, evt.output||'', evt.is_error||false, evt);
+    setNavStatus('● THINKING…','var(--yellow)');
+  } else if(evt.type==='status'){
+    appendStatusMsg(evt.message);
+  } else if(evt.type==='compact'){
+    appendStatusMsg('compact: '+evt.phase+(evt.message?' — '+evt.message:''));
+  } else if(evt.type==='error'){
+    appendStatusMsg('ERROR: '+evt.message);
+    if(!evt.recoverable) setNavStatus('● ERROR','var(--red)');
+  }
+}
+
+/* ─── Input handlers ──────────────────────────────────── */
+const input=document.getElementById('prompt-input');
+const btnSend=document.getElementById('btn-send');
+
+input.addEventListener('input',()=>{
+  autoResize(input);
+  document.getElementById('char-count').textContent=input.value.length+' chars';
+});
+input.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&!e.shiftKey){
+    e.preventDefault();
+    doSend();
+  }
+});
+btnSend.addEventListener('click', doSend);
+
+function doSend(){
+  const prompt=input.value.trim();
+  if(!prompt||!activeSessionId||isStreaming) return;
+  input.value='';
+  autoResize(input);
+  document.getElementById('char-count').textContent='0 chars';
+  sendMessage(prompt);
+}
+
+/* ─── Page navigation (tabs) ─────────────────────────── */
+let currentPage = 'chat';
+
+document.querySelectorAll('.nav-tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    const page = tab.dataset.page;
+    if(page === currentPage) return;
+    currentPage = page;
+    document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    // Toggle page visibility
+    const chatMain = document.getElementById('main');
+    const sidebar = document.getElementById('sidebar');
+    const chatArea = document.getElementById('chat-area');
+    const skillsPage = document.getElementById('skills-page');
+    if(page === 'chat'){
+      sidebar.style.display = '';
+      chatArea.style.display = '';
+      skillsPage.classList.remove('visible');
+    } else if(page === 'skills'){
+      sidebar.style.display = 'none';
+      chatArea.style.display = 'none';
+      skillsPage.classList.add('visible');
+      refreshSkills();
+    }
+  });
+});
+
+/* ─── Skills management ──────────────────────────────── */
+async function refreshSkills(){
+  const list = document.getElementById('skills-list');
+  const countEl = document.getElementById('skills-count');
+  list.innerHTML = '<div class="skills-empty">// LOADING SKILLS…</div>';
+  try{
+    const data = await apiGet('/api/skills');
+    const skills = data.skills || [];
+    const enabled = skills.filter(s=>s.enabled).length;
+    countEl.textContent = `(${enabled}/${skills.length} enabled)`;
+    if(!skills.length){
+      list.innerHTML = '<div class="skills-empty">// NO SKILLS FOUND<br/>Click + NEW SKILL to create one.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    skills.forEach(s=>{
+      const card = document.createElement('div');
+      card.className = 'skill-card' + (s.enabled ? '' : ' disabled');
+      const srcClass = 'source-' + (s.source||'user');
+      const statusClass = s.enabled ? 'status-on' : 'status-off';
+      const statusText = s.enabled ? 'ENABLED' : 'DISABLED';
+      const sourceIcons = {bundled:'⚡', user:'👤', plugin:'🔌'};
+      const icon = sourceIcons[s.source] || '⭐';
+      card.innerHTML = `
+        <div class="skill-icon">${icon}</div>
+        <div class="skill-info">
+          <div class="skill-name">${esc(s.name)}</div>
+          <div class="skill-desc">${esc(s.description)}</div>
+          <div class="skill-meta">
+            <span class="skill-badge ${srcClass}">${esc(s.source)}</span>
+            <span class="skill-badge ${statusClass}">${statusText}</span>
+          </div>
+        </div>
+        <div class="skill-actions">
+          <button class="sk-btn ${s.enabled?'toggle-on':''}" data-action="toggle" data-name="${esc(s.name)}">
+            ${s.enabled ? 'DISABLE' : 'ENABLE'}
+          </button>
+          ${s.source==='user' ? `<button class="sk-btn delete" data-action="delete" data-name="${esc(s.name)}">DELETE</button>` : ''}
+        </div>`;
+      list.appendChild(card);
+    });
+    // Bind actions
+    list.querySelectorAll('.sk-btn[data-action="toggle"]').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        try{
+          const r = await fetch('/api/skills/'+encodeURIComponent(btn.dataset.name)+'/toggle',{method:'PUT'});
+          if(!r.ok) throw new Error(await r.text());
+          toast('Skill toggled');
+          await refreshSkills();
+        }catch(e){ toast('Toggle failed: '+e.message,'err'); }
+      });
+    });
+    list.querySelectorAll('.sk-btn[data-action="delete"]').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        if(!confirm('Delete skill "'+btn.dataset.name+'"?')) return;
+        try{
+          await apiDelete('/api/skills/'+encodeURIComponent(btn.dataset.name));
+          toast('Skill deleted');
+          await refreshSkills();
+        }catch(e){ toast('Delete failed: '+e.message,'err'); }
+      });
+    });
+  }catch(e){
+    list.innerHTML = `<div class="skills-empty">⚠ Failed to load skills: ${esc(e.message)}</div>`;
+  }
+}
+
+/* ─── New skill modal ────────────────────────────────── */
+document.getElementById('btn-new-skill').addEventListener('click',()=>{
+  document.getElementById('skill-modal-name').value = '';
+  document.getElementById('skill-modal-desc').value = '';
+  document.getElementById('skill-modal-content').value = '';
+  document.getElementById('skill-modal-overlay').classList.add('show');
+  setTimeout(()=>document.getElementById('skill-modal-name').focus(),100);
+});
+document.getElementById('skill-modal-cancel').addEventListener('click',()=>{
+  document.getElementById('skill-modal-overlay').classList.remove('show');
+});
+document.getElementById('skill-modal-overlay').addEventListener('click',e=>{
+  if(e.target===document.getElementById('skill-modal-overlay'))
+    document.getElementById('skill-modal-overlay').classList.remove('show');
+});
+document.getElementById('skill-modal-confirm').addEventListener('click', async ()=>{
+  const name = document.getElementById('skill-modal-name').value.trim();
+  const desc = document.getElementById('skill-modal-desc').value.trim();
+  const content = document.getElementById('skill-modal-content').value;
+  if(!name){ toast('Skill name is required','err'); return; }
+  document.getElementById('skill-modal-overlay').classList.remove('show');
+  try{
+    const r = await apiPost('/api/skills',{name, description:desc, content});
+    const data = await r.json();
+    toast('Skill created: ' + data.created);
+    await refreshSkills();
+  }catch(e){ toast('Create failed: '+e.message,'err'); }
+});
+
+/* ─── Remote skills download ────────────────────────── */
+document.getElementById('btn-download-skill').addEventListener('click',()=>{
+  document.getElementById('remote-skills-overlay').classList.add('show');
+  loadRemoteSkills();
+});
+document.getElementById('remote-skills-close').addEventListener('click',()=>{
+  document.getElementById('remote-skills-overlay').classList.remove('show');
+});
+document.getElementById('remote-skills-overlay').addEventListener('click',e=>{
+  if(e.target===document.getElementById('remote-skills-overlay'))
+    document.getElementById('remote-skills-overlay').classList.remove('show');
+});
+document.getElementById('remote-skills-refresh').addEventListener('click',()=>loadRemoteSkills());
+
+async function loadRemoteSkills(){
+  const list = document.getElementById('remote-skills-list');
+  const status = document.getElementById('remote-skills-status');
+  const source = document.getElementById('remote-source-select').value;
+  list.innerHTML = '<div class="rs-empty">// FETCHING REMOTE SKILLS…<br/><small style="opacity:.6">Connecting to GitHub & skills.sh (may take 10-30s)</small></div>';
+  status.textContent = 'loading…';
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 50000);
+
+  try{
+    const resp = await fetch('/api/skills/remote?source='+encodeURIComponent(source), {
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    if(!resp.ok) throw new Error(await resp.text());
+    const data = await resp.json();
+    const skills = data.skills || [];
+    const errors = data.errors || [];
+    status.textContent = skills.length + ' skills found' + (errors.length ? ' (⚠ '+errors.length+' errors)' : '');
+    if(!skills.length){
+      list.innerHTML = '<div class="rs-empty">// NO REMOTE SKILLS FOUND'+(errors.length?'<br/>'+esc(errors.join('; ')):'')+'</div>';
+      return;
+    }
+    list.innerHTML = '';
+    skills.forEach(s=>{
+      const card = document.createElement('div');
+      card.className = 'rs-card' + (s.installed ? ' installed' : '');
+      const srcLabel = s.source === 'anthropics' ? 'ANTHROPIC' : 'SKILLS.SH';
+      card.innerHTML = `
+        <div class="rs-info">
+          <div class="rs-name">${esc(s.name)}</div>
+          <div class="rs-desc">${esc(s.description)}</div>
+          <div class="rs-source">${srcLabel} · ${esc(s.repo_path)}</div>
+        </div>
+        <button class="rs-btn ${s.installed?'installed-btn':''}" ${s.installed?'disabled':''}
+          data-name="${esc(s.name)}" data-source="${esc(s.source)}"
+          data-url="${esc(s.url)}" data-path="${esc(s.repo_path)}"
+          data-desc="${esc(s.description)}">
+          ${s.installed ? '✓ INSTALLED' : 'INSTALL'}
+        </button>`;
+      list.appendChild(card);
+    });
+    // Bind install buttons
+    list.querySelectorAll('.rs-btn:not(.installed-btn)').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        btn.disabled = true;
+        btn.textContent = 'INSTALLING…';
+        try{
+          const body = {
+            source: btn.dataset.source,
+            name: btn.dataset.name,
+            url: btn.dataset.url,
+            repo_path: btn.dataset.path,
+            description: btn.dataset.desc,
+          };
+          const r = await fetch('/api/skills/remote/install',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify(body)
+          });
+          if(!r.ok){
+            const err = await r.json();
+            throw new Error(err.detail || 'Install failed');
+          }
+          btn.textContent = '✓ INSTALLED';
+          btn.classList.add('installed-btn');
+          btn.closest('.rs-card').classList.add('installed');
+          toast('Installed: ' + btn.dataset.name);
+          refreshSkills();
+        }catch(e){
+          btn.disabled = false;
+          btn.textContent = 'INSTALL';
+          toast('Install failed: '+e.message,'err');
+        }
+      });
+    });
+  }catch(e){
+    clearTimeout(timeoutId);
+    const msg = e.name === 'AbortError'
+      ? 'Request timed out (50s). Remote sources may be unavailable. Please try selecting a single source.'
+      : e.message;
+    list.innerHTML = `<div class="rs-empty">⚠ Failed: ${esc(msg)}</div>`;
+    status.textContent = 'error';
+  }
+}
+
+/* ─── Init ────────────────────────────────────────────── */
+(async function init(){
+  await refreshSessions();
+  setInterval(()=>{ if(!isStreaming) refreshSessions(); }, 10000);
+})();
+</script>
+</body>
+</html>
