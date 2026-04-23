@@ -669,6 +669,162 @@ body::after{
 }
 #skill-modal-overlay.show{display:flex;}
 
+/* ─── Agents page ───────────────────────────────────── */
+#agents-page{display:none;flex:1;overflow:hidden;flex-direction:column;min-height:0;}
+#agents-page.visible{display:flex;}
+.agents-toolbar{
+  padding:14px 20px;border-bottom:1px solid var(--line-bright);
+  background:rgba(13,17,23,.6);display:flex;align-items:center;gap:12px;flex-shrink:0;
+}
+.agents-toolbar .ag-title{
+  font-size:9px;letter-spacing:3px;color:var(--cyan);text-transform:uppercase;font-weight:700;
+}
+.agents-toolbar .ag-count{
+  font-size:10px;color:var(--ink-dim);margin-left:4px;
+}
+#agents-list{
+  flex:1;overflow-y:auto;padding:16px 20px;
+  display:flex;flex-direction:column;gap:10px;min-height:0;
+}
+.agent-card{
+  background:var(--bg-card);border:1px solid var(--line-bright);
+  border-radius:var(--radius);overflow:visible;
+  transition:border-color .15s;cursor:pointer;flex-shrink:0;
+}
+.agent-card:hover{border-color:var(--cyan);}
+.agent-card.expanded{border-color:var(--cyan);box-shadow:0 0 12px var(--cyan-glow);}
+.agent-card-header{
+  padding:14px 18px;display:flex;align-items:center;gap:14px;
+}
+.agent-card-icon{
+  width:40px;height:40px;border-radius:var(--radius);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;flex-shrink:0;
+  background:var(--cyan-glow);border:1px solid rgba(88,166,255,.3);
+  color:var(--cyan);
+}
+.agent-card-info{flex:1;min-width:0;}
+.agent-card-name{font-size:13px;color:var(--ink-bright);font-weight:600;}
+.agent-card-desc{font-size:11px;color:var(--ink-dim);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.agent-card-badges{display:flex;gap:6px;margin-top:5px;flex-wrap:wrap;}
+.ag-badge{
+  font-size:9px;letter-spacing:1px;text-transform:uppercase;
+  padding:1px 6px;border-radius:2px;
+}
+.ag-badge.source-builtin{color:var(--cyan);border:1px solid rgba(88,166,255,.3);}
+.ag-badge.source-user{color:var(--violet);border:1px solid rgba(139,92,246,.3);}
+.ag-badge.source-plugin{color:var(--orange);border:1px solid rgba(247,129,102,.3);}
+.ag-badge.bg-badge{color:var(--yellow);border:1px solid rgba(227,179,65,.3);}
+.ag-badge.color-badge{border:1px solid var(--line-bright);}
+.agent-card-chevron{
+  font-size:10px;color:var(--ink-dim);transition:transform .2s;
+}
+.agent-card.expanded .agent-card-chevron{transform:rotate(90deg);color:var(--cyan);}
+.agent-card-detail{
+  display:none;padding:0 18px 16px;border-top:1px solid var(--line);
+  max-height:55vh;overflow-y:auto;overflow-x:hidden;
+}
+.agent-card.expanded .agent-card-detail{display:block;}
+.detail-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+  gap:10px;margin-top:12px;
+}
+.detail-item{
+  background:var(--bg-elevated);border:1px solid var(--line);
+  border-radius:var(--radius);padding:10px 12px;
+}
+.detail-label{
+  font-size:9px;letter-spacing:2px;text-transform:uppercase;
+  color:var(--ink-dim);margin-bottom:4px;
+}
+.detail-value{
+  font-size:11px;color:var(--ink-bright);word-break:break-all;
+}
+.detail-value.mono{font-family:var(--mono);font-size:10px;}
+.detail-value .tag{
+  display:inline-block;font-size:9px;padding:1px 5px;margin:1px 2px;
+  border-radius:2px;border:1px solid var(--line-bright);color:var(--ink);
+}
+.detail-value.prompt-preview{
+  max-height:300px;overflow-y:auto;white-space:pre-wrap;
+  font-size:10px;color:var(--ink-dim);line-height:1.5;
+  background:var(--bg);padding:8px;border-radius:var(--radius);
+  border:1px solid var(--line);
+}
+.agents-empty{
+  margin:auto;text-align:center;color:var(--ink-dim);padding:60px 20px;
+  font-size:12px;letter-spacing:1px;
+}
+/* ─── Agent CRUD modal ──────────────────────────────── */
+#agent-modal-overlay{
+  display:none;position:fixed;inset:0;z-index:60;
+  background:rgba(0,0,0,.65);align-items:center;justify-content:center;
+}
+#agent-modal-overlay.show{display:flex;}
+#agent-modal{
+  background:var(--bg-card);border:1px solid var(--line-bright);border-radius:var(--radius);
+  width:660px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:0 4px 30px rgba(0,0,0,.5);
+}
+.agent-modal-header{
+  padding:16px 20px;border-bottom:1px solid var(--line-bright);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+}
+.agent-modal-header h3{
+  margin:0;font-size:11px;letter-spacing:3px;color:var(--cyan);text-transform:uppercase;font-weight:700;
+}
+.agent-modal-header .close-btn{
+  background:none;border:none;color:var(--ink-dim);cursor:pointer;font-size:16px;
+}
+.agent-modal-body{
+  padding:16px 20px;overflow-y:auto;flex:1;min-height:0;
+  display:flex;flex-direction:column;gap:12px;
+}
+.af-row{display:flex;gap:10px;}
+.af-row>.af-field{flex:1;}
+.af-field{display:flex;flex-direction:column;gap:3px;}
+.af-field label{
+  font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--ink-dim);
+}
+.af-field input,.af-field select,.af-field textarea{
+  background:var(--bg);border:1px solid var(--line-bright);border-radius:var(--radius);
+  color:var(--ink-bright);padding:7px 10px;font-size:11px;font-family:var(--mono);
+  outline:none;transition:border-color .15s;
+}
+.af-field input:focus,.af-field select:focus,.af-field textarea:focus{
+  border-color:var(--cyan);
+}
+.af-field textarea{resize:vertical;min-height:60px;}
+.agent-modal-footer{
+  padding:14px 20px;border-top:1px solid var(--line-bright);
+  display:flex;justify-content:flex-end;gap:10px;flex-shrink:0;
+}
+.agent-modal-footer button{
+  font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:7px 18px;
+  border-radius:var(--radius);cursor:pointer;font-weight:600;
+}
+#agent-modal-cancel{
+  background:none;border:1px solid var(--line-bright);color:var(--ink-dim);
+}
+#agent-modal-save{
+  background:var(--cyan);border:1px solid var(--cyan);color:var(--bg);
+}
+#agent-modal-save:hover{opacity:.85;}
+.agent-card-actions{
+  display:flex;gap:6px;margin-left:8px;flex-shrink:0;
+}
+.agent-card-actions button{
+  background:none;border:1px solid var(--line-bright);border-radius:var(--radius);
+  color:var(--ink-dim);font-size:9px;letter-spacing:1px;padding:3px 8px;
+  cursor:pointer;text-transform:uppercase;transition:all .15s;
+}
+.agent-card-actions button:hover{
+  border-color:var(--cyan);color:var(--cyan);
+}
+.agent-card-actions button.del-btn:hover{
+  border-color:var(--red);color:var(--red);
+}
+
 /* ─── Remote skills modal ────────────────────────────── */
 #remote-skills-overlay{
   display:none;position:fixed;inset:0;z-index:50;
@@ -722,6 +878,7 @@ body::after{
     <div class="nav-tabs">
       <button class="nav-tab active" data-page="chat">CHAT</button>
       <button class="nav-tab" data-page="skills">SKILLS</button>
+      <button class="nav-tab" data-page="agents">AGENTS</button>
     </div>
     <div class="nav-spacer"></div>
     <span id="nav-model">NO SESSION</span>
@@ -778,6 +935,74 @@ body::after{
           <span><kbd>Enter</kbd> send &nbsp;·&nbsp; <kbd>Shift+Enter</kbd> newline</span>
           <span id="char-count">0 chars</span>
         </div>
+      </div>
+    </div>
+
+    <!-- Agent CRUD modal -->
+    <div id="agent-modal-overlay">
+      <div id="agent-modal">
+        <div class="agent-modal-header">
+          <h3 id="agent-modal-title">// NEW AGENT</h3>
+          <button class="close-btn" id="agent-modal-close">&times;</button>
+        </div>
+        <div class="agent-modal-body">
+          <input type="hidden" id="af-edit-orig-name">
+          <div class="af-row">
+            <div class="af-field"><label>Name *</label><input id="af-name" placeholder="my-agent"></div>
+            <div class="af-field"><label>Model</label><input id="af-model" placeholder="inherit"></div>
+          </div>
+          <div class="af-field"><label>Description *</label><input id="af-desc" placeholder="What does this agent do?"></div>
+          <div class="af-row">
+            <div class="af-field"><label>Permission Mode</label>
+              <select id="af-perm"><option value="">default</option><option value="acceptEdits">acceptEdits</option><option value="bypassPermissions">bypassPermissions</option><option value="plan">plan</option><option value="dontAsk">dontAsk</option></select>
+            </div>
+            <div class="af-field"><label>Memory</label>
+              <select id="af-memory"><option value="">none</option><option value="user">user</option><option value="project">project</option><option value="local">local</option></select>
+            </div>
+            <div class="af-field"><label>Isolation</label>
+              <select id="af-isolation"><option value="">none</option><option value="worktree">worktree</option><option value="remote">remote</option></select>
+            </div>
+          </div>
+          <div class="af-row">
+            <div class="af-field"><label>Effort</label>
+              <select id="af-effort"><option value="">default</option><option value="low">low</option><option value="medium">medium</option><option value="high">high</option></select>
+            </div>
+            <div class="af-field"><label>Max Turns</label><input id="af-max-turns" type="number" min="1" placeholder="auto"></div>
+            <div class="af-field"><label>Color</label>
+              <select id="af-color"><option value="">none</option><option value="red">red</option><option value="green">green</option><option value="blue">blue</option><option value="yellow">yellow</option><option value="purple">purple</option><option value="orange">orange</option><option value="cyan">cyan</option><option value="magenta">magenta</option><option value="white">white</option><option value="gray">gray</option></select>
+            </div>
+          </div>
+          <div class="af-row">
+            <div class="af-field"><label>Background</label>
+              <select id="af-bg"><option value="">No</option><option value="true">Yes</option></select>
+            </div>
+            <div class="af-field"><label>Omit CLAUDE.md</label>
+              <select id="af-omit-claude"><option value="">No</option><option value="true">Yes</option></select>
+            </div>
+          </div>
+          <div class="af-field"><label>Tools (comma-separated)</label><input id="af-tools" placeholder="Bash, Read, Write, ..."></div>
+          <div class="af-field"><label>Disallowed Tools (comma-separated)</label><input id="af-disallowed" placeholder=""></div>
+          <div class="af-field"><label>Skills (comma-separated)</label><input id="af-skills" placeholder=""></div>
+          <div class="af-field"><label>Permissions (comma-separated)</label><input id="af-permissions" placeholder=""></div>
+          <div class="af-field"><label>Initial Prompt</label><textarea id="af-initial" rows="2" placeholder="Optional first-turn prompt"></textarea></div>
+          <div class="af-field"><label>System Prompt</label><textarea id="af-sysprompt" rows="6" placeholder="System instructions for this agent..."></textarea></div>
+        </div>
+        <div class="agent-modal-footer">
+          <button id="agent-modal-cancel">CANCEL</button>
+          <button id="agent-modal-save">SAVE</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Agents page -->
+    <div id="agents-page">
+      <div class="agents-toolbar">
+        <span class="ag-title">// AGENT REGISTRY</span>
+        <span class="ag-count" id="agents-count"></span>
+        <button id="btn-new-agent" style="margin-left:auto;font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:5px 14px;border-radius:var(--radius);background:var(--cyan);border:1px solid var(--cyan);color:var(--bg);cursor:pointer;font-weight:600;">+ NEW AGENT</button>
+      </div>
+      <div id="agents-list">
+        <div class="agents-empty">// LOADING AGENTS…</div>
       </div>
     </div>
 
@@ -1671,15 +1896,24 @@ document.querySelectorAll('.nav-tab').forEach(tab=>{
     const sidebar = document.getElementById('sidebar');
     const chatArea = document.getElementById('chat-area');
     const skillsPage = document.getElementById('skills-page');
+    const agentsPage = document.getElementById('agents-page');
     if(page === 'chat'){
       sidebar.style.display = '';
       chatArea.style.display = '';
       skillsPage.classList.remove('visible');
+      agentsPage.classList.remove('visible');
     } else if(page === 'skills'){
       sidebar.style.display = 'none';
       chatArea.style.display = 'none';
       skillsPage.classList.add('visible');
+      agentsPage.classList.remove('visible');
       refreshSkills();
+    } else if(page === 'agents'){
+      sidebar.style.display = 'none';
+      chatArea.style.display = 'none';
+      skillsPage.classList.remove('visible');
+      agentsPage.classList.add('visible');
+      refreshAgents();
     }
   });
 });
@@ -1878,6 +2112,223 @@ async function loadRemoteSkills(){
       : e.message;
     list.innerHTML = `<div class="rs-empty">⚠ Failed: ${esc(msg)}</div>`;
     status.textContent = 'error';
+  }
+}
+
+/* ─── Agents management ──────────────────────────────── */
+let agentsData = [];
+
+// ---- Agent modal helpers ----
+function openAgentModal(agent){
+  const overlay = document.getElementById('agent-modal-overlay');
+  const title = document.getElementById('agent-modal-title');
+  document.getElementById('af-edit-orig-name').value = agent ? agent.name : '';
+  title.textContent = agent ? '// EDIT AGENT' : '// NEW AGENT';
+  document.getElementById('af-name').value = agent ? agent.name : '';
+  document.getElementById('af-desc').value = agent ? (agent.description||'') : '';
+  document.getElementById('af-model').value = agent ? (agent.model||'') : '';
+  document.getElementById('af-perm').value = agent ? (agent.permission_mode||'') : '';
+  document.getElementById('af-memory').value = agent ? (agent.memory||'') : '';
+  document.getElementById('af-isolation').value = agent ? (agent.isolation||'') : '';
+  document.getElementById('af-effort').value = agent ? (agent.effort||'') : '';
+  document.getElementById('af-max-turns').value = agent && agent.max_turns ? agent.max_turns : '';
+  document.getElementById('af-color').value = agent ? (agent.color||'') : '';
+  document.getElementById('af-bg').value = agent && agent.background ? 'true' : '';
+  document.getElementById('af-omit-claude').value = agent && agent.omit_claude_md ? 'true' : '';
+  document.getElementById('af-tools').value = agent && agent.tools ? agent.tools.join(', ') : '';
+  document.getElementById('af-disallowed').value = agent && agent.disallowed_tools ? agent.disallowed_tools.join(', ') : '';
+  document.getElementById('af-skills').value = agent && agent.skills ? agent.skills.join(', ') : '';
+  document.getElementById('af-permissions').value = agent && agent.permissions ? agent.permissions.join(', ') : '';
+  document.getElementById('af-initial').value = agent ? (agent.initial_prompt||'') : '';
+  document.getElementById('af-sysprompt').value = agent ? (agent.system_prompt||'') : '';
+  overlay.classList.add('show');
+}
+function closeAgentModal(){
+  document.getElementById('agent-modal-overlay').classList.remove('show');
+}
+function csvToArr(s){ return s ? s.split(',').map(x=>x.trim()).filter(Boolean) : []; }
+
+async function saveAgent(){
+  const origName = document.getElementById('af-edit-orig-name').value;
+  const name = document.getElementById('af-name').value.trim();
+  const desc = document.getElementById('af-desc').value.trim();
+  if(!name){ toast('Name is required'); return; }
+  if(!desc){ toast('Description is required'); return; }
+  const body = {
+    name,
+    description: desc,
+    model: document.getElementById('af-model').value.trim() || null,
+    permission_mode: document.getElementById('af-perm').value || null,
+    memory: document.getElementById('af-memory').value || null,
+    isolation: document.getElementById('af-isolation').value || null,
+    effort: document.getElementById('af-effort').value || null,
+    max_turns: document.getElementById('af-max-turns').value ? parseInt(document.getElementById('af-max-turns').value) : null,
+    color: document.getElementById('af-color').value || null,
+    background: document.getElementById('af-bg').value === 'true',
+    omit_claude_md: document.getElementById('af-omit-claude').value === 'true',
+    tools: csvToArr(document.getElementById('af-tools').value),
+    disallowed_tools: csvToArr(document.getElementById('af-disallowed').value),
+    skills: csvToArr(document.getElementById('af-skills').value),
+    permissions: csvToArr(document.getElementById('af-permissions').value),
+    initial_prompt: document.getElementById('af-initial').value.trim() || null,
+    system_prompt: document.getElementById('af-sysprompt').value || null,
+  };
+  try{
+    if(origName){
+      const r = await fetch('/api/agents/'+encodeURIComponent(origName),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      const d = await r.json(); if(!r.ok) throw new Error(d.error||'Update failed');
+      toast('Agent updated: '+name);
+    } else {
+      const r = await fetch('/api/agents',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      const d = await r.json(); if(!r.ok) throw new Error(d.error||'Create failed');
+      toast('Agent created: '+name);
+    }
+    closeAgentModal();
+    await refreshAgents();
+  }catch(e){ toast('⚠ '+e.message); }
+}
+
+async function deleteAgent(name){
+  if(!confirm('Delete agent "'+name+'"? This cannot be undone.')) return;
+  try{
+    const r = await fetch('/api/agents/'+encodeURIComponent(name),{method:'DELETE'});
+    const d = await r.json(); if(!r.ok) throw new Error(d.error||'Delete failed');
+    toast('Agent deleted: '+name);
+    await refreshAgents();
+  }catch(e){ toast('⚠ '+e.message); }
+}
+
+// Wire modal buttons
+document.getElementById('btn-new-agent').addEventListener('click', ()=>openAgentModal(null));
+document.getElementById('agent-modal-close').addEventListener('click', closeAgentModal);
+document.getElementById('agent-modal-cancel').addEventListener('click', closeAgentModal);
+document.getElementById('agent-modal-save').addEventListener('click', saveAgent);
+document.getElementById('agent-modal-overlay').addEventListener('click', e=>{
+  if(e.target.id==='agent-modal-overlay') closeAgentModal();
+});
+
+async function refreshAgents(){
+  const list = document.getElementById('agents-list');
+  const countEl = document.getElementById('agents-count');
+  list.innerHTML = '<div class="agents-empty">// LOADING AGENTS…</div>';
+  try{
+    const data = await apiGet('/api/agents');
+    agentsData = data.agents || [];
+    countEl.textContent = `(${agentsData.length} agents)`;
+    if(!agentsData.length){
+      list.innerHTML = '<div class="agents-empty">// NO AGENTS FOUND</div>';
+      return;
+    }
+    list.innerHTML = '';
+    agentsData.forEach(a=>{
+      const card = document.createElement('div');
+      card.className = 'agent-card';
+      const sourceClass = 'source-' + (a.source||'builtin');
+      const colorStyle = a.color ? 'color:'+a.color+';border-color:'+a.color : '';
+      const sourceIcons = {builtin:'⚡', user:'👤', plugin:'🔌'};
+      const icon = sourceIcons[a.source] || '🤖';
+      let badges = `<span class="ag-badge ${sourceClass}">${esc(a.source)}</span>`;
+      if(a.background) badges += '<span class="ag-badge bg-badge">BACKGROUND</span>';
+      if(a.color) badges += `<span class="ag-badge color-badge" style="${colorStyle}">${esc(a.color)}</span>`;
+      if(a.model) badges += `<span class="ag-badge" style="color:var(--accent);border:1px solid var(--accent-dim)">${esc(a.model)}</span>`;
+
+      // Action buttons (only user agents can be edited/deleted)
+      let actionsHtml = '';
+      if(a.source === 'user'){
+        actionsHtml = `<div class="agent-card-actions">
+          <button class="edit-btn" data-name="${esc(a.name)}">EDIT</button>
+          <button class="del-btn" data-name="${esc(a.name)}">DEL</button>
+        </div>`;
+      }
+
+      // Build detail items
+      let detailItems = '';
+      const addDetail = (label, value, cls='') => {
+        if(value === null || value === undefined || value === '') return;
+        detailItems += `<div class="detail-item"><div class="detail-label">${label}</div><div class="detail-value ${cls}">${value}</div></div>`;
+      };
+
+      addDetail('Name', esc(a.name));
+      addDetail('Type', esc(a.subagent_type));
+      addDetail('Source', esc(a.source));
+      addDetail('Model', a.model ? esc(a.model) : '<span style="color:var(--ink-dim)">inherit</span>');
+      addDetail('Effort', a.effort ? esc(String(a.effort)) : null);
+      addDetail('Permission Mode', a.permission_mode ? esc(a.permission_mode) : null);
+      addDetail('Max Turns', a.max_turns ? String(a.max_turns) : null);
+      addDetail('Color', a.color ? `<span style="color:${esc(a.color)}">${esc(a.color)}</span>` : null);
+      addDetail('Background', a.background ? '<span style="color:var(--yellow)">Yes</span>' : null);
+      addDetail('Memory', a.memory ? esc(a.memory) : null);
+      addDetail('Isolation', a.isolation ? esc(a.isolation) : null);
+      addDetail('Omit CLAUDE.md', a.omit_claude_md ? '<span style="color:var(--yellow)">Yes</span>' : null);
+      addDetail('Filename', a.filename ? esc(a.filename) : null);
+      addDetail('Base Dir', a.base_dir ? esc(a.base_dir) : null, 'mono');
+
+      if(a.tools && a.tools.length){
+        const tags = a.tools.map(t=>'<span class="tag">'+esc(t)+'</span>').join('');
+        addDetail('Tools', tags);
+      }
+      if(a.disallowed_tools && a.disallowed_tools.length){
+        const tags = a.disallowed_tools.map(t=>'<span class="tag" style="border-color:var(--red);color:var(--red)">'+esc(t)+'</span>').join('');
+        addDetail('Disallowed Tools', tags);
+      }
+      if(a.skills && a.skills.length){
+        const tags = a.skills.map(t=>'<span class="tag" style="border-color:rgba(139,92,246,.3);color:var(--violet)">'+esc(t)+'</span>').join('');
+        addDetail('Skills', tags);
+      }
+      if(a.mcp_servers && a.mcp_servers.length){
+        addDetail('MCP Servers', esc(JSON.stringify(a.mcp_servers)), 'mono');
+      }
+      if(a.required_mcp_servers && a.required_mcp_servers.length){
+        addDetail('Required MCP', a.required_mcp_servers.map(t=>'<span class="tag">'+esc(t)+'</span>').join(''));
+      }
+      if(a.hooks){
+        addDetail('Hooks', esc(JSON.stringify(a.hooks)), 'mono');
+      }
+      if(a.permissions && a.permissions.length){
+        addDetail('Permissions', a.permissions.map(t=>'<span class="tag">'+esc(t)+'</span>').join(''));
+      }
+      if(a.initial_prompt){
+        addDetail('Initial Prompt', esc(a.initial_prompt), 'prompt-preview');
+      }
+
+      addDetail('Description', esc(a.description), 'prompt-preview');
+      if(a.system_prompt){
+        addDetail('System Prompt (preview)', esc(a.system_prompt), 'prompt-preview');
+      }
+
+      card.innerHTML = `
+        <div class="agent-card-header">
+          <div class="agent-card-icon">${icon}</div>
+          <div class="agent-card-info">
+            <div class="agent-card-name">${esc(a.name)}</div>
+            <div class="agent-card-desc">${esc(a.description)}</div>
+            <div class="agent-card-badges">${badges}</div>
+          </div>
+          ${actionsHtml}
+          <span class="agent-card-chevron">▶</span>
+        </div>
+        <div class="agent-card-detail">
+          <div class="detail-grid">${detailItems}</div>
+        </div>`;
+
+      card.querySelector('.agent-card-header').addEventListener('click', (e)=>{
+        if(e.target.closest('.agent-card-actions')) return;
+        card.classList.toggle('expanded');
+      });
+
+      // Wire edit/delete buttons
+      const editBtn = card.querySelector('.edit-btn');
+      if(editBtn) editBtn.addEventListener('click', ()=>{
+        const ag = agentsData.find(x=>x.name===a.name);
+        if(ag) openAgentModal(ag);
+      });
+      const delBtn = card.querySelector('.del-btn');
+      if(delBtn) delBtn.addEventListener('click', ()=>deleteAgent(a.name));
+
+      list.appendChild(card);
+    });
+  }catch(e){
+    list.innerHTML = `<div class="agents-empty">⚠ Failed to load agents: ${esc(e.message)}</div>`;
   }
 }
 

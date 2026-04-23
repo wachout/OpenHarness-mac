@@ -8,9 +8,9 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from fastapi import FastAPI, HTTPException
+    from fastapi import FastAPI, HTTPException, Request
     from fastapi.middleware.cors import CORSMiddleware
-    from fastapi.responses import HTMLResponse, StreamingResponse
+    from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
     from pydantic import BaseModel
 except ImportError as exc:  # pragma: no cover
     raise ImportError(
@@ -436,6 +436,140 @@ async def chat(session_id: str, req: ChatRequest) -> StreamingResponse:
             "Connection": "keep-alive",
         },
     )
+
+
+# ── Agents routes ────────────────────────────────────────────────────────────
+
+
+@app.get("/api/agents")
+async def list_agents() -> dict[str, Any]:
+    """Return all registered agent definitions."""
+    from openharness.coordinator.agent_definitions import get_all_agent_definitions
+
+    agents_out = []
+    for a in get_all_agent_definitions():
+        agents_out.append({
+            "name": a.name,
+            "description": a.description,
+            "source": a.source,
+            "subagent_type": a.subagent_type,
+            "model": a.model,
+            "effort": a.effort,
+            "color": a.color,
+            "background": a.background,
+            "permission_mode": a.permission_mode,
+            "max_turns": a.max_turns,
+            "tools": a.tools,
+            "disallowed_tools": a.disallowed_tools,
+            "skills": a.skills,
+            "mcp_servers": a.mcp_servers,
+            "required_mcp_servers": a.required_mcp_servers,
+            "hooks": a.hooks,
+            "memory": a.memory,
+            "isolation": a.isolation,
+            "omit_claude_md": a.omit_claude_md,
+            "permissions": a.permissions,
+            "initial_prompt": a.initial_prompt,
+            "system_prompt": a.system_prompt,
+            "filename": a.filename,
+            "base_dir": a.base_dir,
+        })
+    return {"agents": agents_out, "total": len(agents_out)}
+
+
+def _user_agents_dir() -> "Path":
+    """Return the user agents directory, creating it if needed."""
+    from openharness.config.paths import get_config_dir
+    d = get_config_dir() / "agents"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _agent_to_md(body: dict[str, Any]) -> str:
+    """Serialize an agent definition dict to Markdown with YAML frontmatter."""
+    import yaml
+
+    fm: dict[str, Any] = {}
+    # Simple scalar fields
+    for key in (
+        "name", "description", "model", "effort", "color",
+        "permission_mode", "max_turns", "memory", "isolation",
+    ):
+        v = body.get(key)
+        if v not in (None, "", []):
+            fm[key] = v
+    # Boolean fields
+    for key in ("background", "omit_claude_md"):
+        if body.get(key):
+            fm[key] = True
+    # List fields
+    for key in ("tools", "disallowed_tools", "skills", "permissions",
+                "mcp_servers", "required_mcp_servers"):
+        v = body.get(key)
+        if v:
+            fm[key] = v if isinstance(v, list) else [v]
+    # Dict fields
+    if body.get("hooks"):
+        fm["hooks"] = body["hooks"]
+    if body.get("initial_prompt"):
+        fm["initial_prompt"] = body["initial_prompt"]
+
+    yaml_str = yaml.dump(fm, default_flow_style=False, allow_unicode=True, sort_keys=False)
+    system_prompt = body.get("system_prompt", "") or ""
+    return f"---\n{yaml_str}---\n\n{system_prompt}\n"
+
+
+@app.post("/api/agents")
+async def create_agent(request: Request) -> dict[str, Any]:
+    """Create a new user-defined agent."""
+    body = await request.json()
+    name = body.get("name", "").strip()
+    if not name:
+        return JSONResponse({"error": "name is required"}, status_code=400)
+
+    # Sanitize filename
+    import re
+    filename = re.sub(r'[^\w\-]', '_', name)
+    filepath = _user_agents_dir() / f"{filename}.md"
+    if filepath.exists():
+        return JSONResponse({"error": f"Agent '{name}' already exists"}, status_code=409)
+
+    content = _agent_to_md(body)
+    filepath.write_text(content, encoding="utf-8")
+    return {"ok": True, "name": name, "filename": filename}
+
+
+@app.put("/api/agents/{agent_name}")
+async def update_agent(agent_name: str, request: Request) -> dict[str, Any]:
+    """Update an existing user-defined agent."""
+    body = await request.json()
+    import re
+    filename = re.sub(r'[^\w\-]', '_', agent_name)
+    filepath = _user_agents_dir() / f"{filename}.md"
+    if not filepath.exists():
+        return JSONResponse({"error": f"Agent '{agent_name}' not found"}, status_code=404)
+
+    # If name changed, rename file
+    new_name = body.get("name", agent_name).strip()
+    new_filename = re.sub(r'[^\w\-]', '_', new_name)
+    new_path = _user_agents_dir() / f"{new_filename}.md"
+    content = _agent_to_md(body)
+    if new_filename != filename:
+        filepath.unlink()
+    new_path.write_text(content, encoding="utf-8")
+    return {"ok": True, "name": new_name, "filename": new_filename}
+
+
+@app.delete("/api/agents/{agent_name}")
+async def delete_agent(agent_name: str) -> dict[str, Any]:
+    """Delete a user-defined agent."""
+    import re
+    filename = re.sub(r'[^\w\-]', '_', agent_name)
+    filepath = _user_agents_dir() / f"{filename}.md"
+    if not filepath.exists():
+        return JSONResponse({"error": f"Agent '{agent_name}' not found"}, status_code=404)
+    filepath.unlink()
+    return {"ok": True, "name": agent_name}
 
 
 # ── Skills routes ─────────────────────────────────────────────────────────────
